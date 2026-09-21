@@ -1,7 +1,7 @@
 # Privity
 
 **Settlement infrastructure for tokenized funds on Canton.** Both legs of a fund trade commit
-in one transaction, and each counterparty is shown only the parcel it is buying.
+in one transaction and each counterparty is shown only the parcel it is buying.
 
 HackCanton Season 3 entry, Investment Infrastructure track.
 
@@ -11,8 +11,8 @@ HackCanton Season 3 entry, Investment Infrastructure track.
 
 A tokenized fund has two legs that must not separate. Units move one way, cash moves the
 other. Today they are two events in two systems: an investor wires cash, somebody watches a
-bank feed, and units get recorded in the register afterwards. The gap between those events is
-carried by whoever is exposed when it breaks, and closing it is a manual reconciliation task
+bank feed and units get recorded in the register afterwards. The gap between those events is
+carried by whoever is exposed when it breaks and closing it is a manual reconciliation task
 every month end.
 
 You can make both legs atomic on any public ledger, but only by publishing every investor's
@@ -27,7 +27,7 @@ One precondition, stated up front rather than buried. A Daml transaction can onl
 contracts assigned to the same synchronizer, so the atomicity here is demonstrated on a single
 synchronizer topology, which is what the Global Synchronizer provides. Where cash and register
 live on different synchronizers, Canton's reassignment protocol moves both to a common one
-first, and that preparation carries no settlement risk because no value changes hands until
+first and that preparation carries no settlement risk because no value changes hands until
 the atomic step. The full analysis, including what is verified and what is not, is in
 [docs/SYNCHRONIZER-TOPOLOGY.md](docs/SYNCHRONIZER-TOPOLOGY.md).
 
@@ -44,21 +44,21 @@ Three layers, deliberately split into separate packages.
 | Package | Contents |
 | --- | --- |
 | `privity-disclosure` | Need-to-know disclosure primitives. No fund logic, no settlement logic, so any Canton application can depend on it |
-| `privity` | Fund, share register, cash holdings, NAV attestation, and the atomic settlement choices |
+| `privity` | Fund, share register, cash holdings, NAV attestation and the atomic settlement choices |
 | `privity-tests` | Daml Script suite. Separate so the production DARs carry no test tooling |
 
 ### The disclosure layer
 
 Canton gives you sub-transaction privacy as a mechanism. What applications rebuild by hand is
-the policy on top, and they usually get one of two things wrong: they widen disclosure
-permanently by adding an auditor as an observer on everything, or they grant access out of band
+the policy on top and they usually get one of two things wrong: they widen disclosure
+permanently by adding an auditor as an observer on everything or they grant access out of band
 so nobody can later prove what was shown and under what authority.
 
 `DisclosureMandate` makes the entitlement a contract. **Both the subject and the observer are
 signatories**, on purpose: if only the observer signed, any party could assert supervision over
-anyone, and if only the subject signed, a firm could manufacture evidence of having been
+anyone and if only the subject signed, a firm could manufacture evidence of having been
 audited by a regulator that never agreed. Mandates are time-bounded, revocable by either side
-with a stated reason, and disclosures recorded against them carry a digest of what was shown
+with a stated reason and disclosures recorded against them carry a digest of what was shown
 rather than the content, so the audit log does not become a second copy of the private data it
 describes.
 
@@ -67,11 +67,11 @@ describes.
 A share transfer needs the seller's authority. A cash transfer needs the buyer's. Settlement is
 atomic only if both happen in one committed transaction, because any ordering of two
 transactions leaves a window where one leg has moved and the other has not. That window is
-principal risk, and removing it is the entire point of delivery versus payment.
+principal risk and removing it is the entire point of delivery versus payment.
 
 `DvpProposal` is signed by the seller and exercised by the buyer, so inside the choice body the
 transaction carries both authorities at once. Subscription and redemption work the same way:
-cash reaches the fund in the same transaction the units are created, and redeemed units are
+cash reaches the fund in the same transaction the units are created and redeemed units are
 cancelled in the same transaction the investor is paid.
 
 ### Verifiable NAV
@@ -88,11 +88,11 @@ drift by a separator the commitment silently stops verifying. One implementation
 disagree with itself.
 
 Canonical means order-independent and content-sensitive: lines are sorted before hashing, so
-the order a book happens to be listed in cannot change the result, and a single altered price
+the order a book happens to be listed in cannot change the result and a single altered price
 changes it. Entitlement is enforced in the choice, so an investor holding the same book cannot
 run the check.
 
-### Calibrated disclosure, and why the design changed
+### Calibrated disclosure and why the design changed
 
 The first implementation had the buyer verify the trade by reading the seller's share holding.
 **The ledger rejected it**, because the buyer is not a stakeholder on that contract. Canton
@@ -104,7 +104,7 @@ compile. Both settle correctly. Only a test written to falsify the claim disting
 
 So the unit of disclosure is a parcel, not a holding. `EarmarkForSale` splits off exactly the
 quantity being sold and discloses only that parcel to the named buyer. The buyer can verify
-what it is paying for and learns nothing about the rest of the book, and `TransferShares`
+what it is paying for and learns nothing about the rest of the book and `TransferShares`
 clears the earmark so the new holding is not still readable by its counterparty.
 
 The lesson generalises: **this is calibrated disclosure, not maximum secrecy.** Hide everything
@@ -138,7 +138,7 @@ evidence rather than demonstration.
 
 ## Reproduce it
 
-Prerequisites: Docker with about 8 GB available to it, and roughly 20 GB of disk. No Canton
+Prerequisites: Docker with about 8 GB available to it and roughly 20 GB of disk. No Canton
 node, no cloud account, no credentials.
 
 ```bash
@@ -182,16 +182,16 @@ Stated here rather than left for a reader to discover.
   behaviour over the real Ledger API with allocated parties.
 - **Nothing deployed beyond LocalNet.** No DevNet, no MainNet.
 - **Zero practitioner interviews.** Problem evidence is documentary and regulator-sourced. That
-  moves problem validation, not market validation, and the distinction is kept explicit.
+  moves problem validation, not market validation and the distinction is kept explicit.
 
 ## Package versions and upgrades
 
-`privity-disclosure` is at 1.1.0 and `privity` at 1.2.0, and the version numbers are not
+`privity-disclosure` is at 1.1.0 and `privity` at 1.2.0 and the version numbers are not
 cosmetic. Canton treats package name plus version as an identity and **enforces upgrade
 compatibility**, so a changed model needs a bump and the bump has to be a valid upgrade.
 
 That caught a real mistake. Moving the mandate validity check from a caller-supplied timestamp
-to ledger time meant deleting the `at` field from choice `CheckActive`, and the participant
+to ledger time meant deleting the `at` field from choice `CheckActive` and the participant
 refused the upload: `NOT_VALID_UPGRADE_PACKAGE: The upgraded input type of choice CheckActive
 on template DisclosureMandate is missing some of its original fields`. The field is therefore
 retained and explicitly ignored. A vestigial argument is the price of a register that can be
@@ -211,5 +211,5 @@ concludes, so it can be adopted as an ecosystem primitive. The reason for waitin
 
 AI assistance (Claude, Anthropic) was used in developing this project. The design decisions,
 the review and the verification are the author's. Verified before publishing: `dpm build --all`
-succeeds for all three packages, `dpm test` passes 15 of 15 scripts, and both production DARs
+succeeds for all three packages, `dpm test` passes 15 of 15 scripts and both production DARs
 upload and vet on a live Canton LocalNet participant.

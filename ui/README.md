@@ -23,12 +23,12 @@ node api/ledger.mjs capture     # writes ui/replay.json
 cd ui && python3 -m http.server 8899   # then open http://localhost:8899
 ```
 
-`replay.json` records, for every step, the real `updateId`, the contracts created, and the
+`replay.json` records, for every step, the real `updateId`, the contracts created and the
 active contract set as each of the four parties. The visibility table on the page is
 rendered from those queries rather than from a hand-drawn permissions diagram.
 
 Expected visibility is asserted per role rather than globally. The administrator is a
 stakeholder on the register by design, because it cannot strike NAV otherwise. The auditor
 is entitled to the mandate and the attestation rather than to individual positions. The
-buyer is the party that must never see the seller's retained units, and that is the claim
+buyer is the party that must never see the seller's retained units and that is the claim
 the page and the test suite both check.

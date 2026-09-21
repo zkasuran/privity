@@ -1,7 +1,7 @@
 # Synchronizer topology and the limits of the atomicity claim
 
 This document exists because "both legs settle in one transaction" is the central claim of
-this project, and that claim has a precondition most descriptions of Canton leave out. An
+this project and that claim has a precondition most descriptions of Canton leave out. An
 institutional reviewer asks about it early, so it is answered here rather than discovered
 live.
 
@@ -38,8 +38,8 @@ across every contract in the run, that same `global-domain`.
 
 So the eight-event atomic settlement is real and the claim is honest, but it is demonstrated
 in the **single synchronizer** case. Both participants connect to one synchronizer, all
-contracts are assigned to it, and the transaction commits or fails whole. That is the correct
-thing to have proven first, and it is exactly the topology the Global Synchronizer provides.
+contracts are assigned to it and the transaction commits or fails whole. That is the correct
+thing to have proven first and it is exactly the topology the Global Synchronizer provides.
 
 **What has not been demonstrated:** settlement where the cash and the register start on
 different synchronizers.
