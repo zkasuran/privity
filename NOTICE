@@ -1,0 +1,41 @@
+# NOTICE
+
+Privity
+Copyright (c) 2026 zkasuran
+Licensed under LicenseRef-zkasuran-SAND-1.0. See LICENSE.
+
+This product depends on third-party components that are licensed separately by their
+own authors. None of them are redistributed in this repository. They are resolved at
+build time from their own registries, and their terms govern those components.
+
+## Build and runtime dependencies
+
+| Component | Provided by | Licence |
+| --- | --- | --- |
+| `daml-prim`, `daml-stdlib` (Daml standard library 3.5.2) | Digital Asset | Apache-2.0 |
+| `daml-script` 3.5.2 (test package only, not a dependency of the production DARs) | Digital Asset | Apache-2.0 |
+| `dpm` (Daml Package Manager) 1.0.22, `damlc` 3.5.2, Daml SDK 3.5.11 | Digital Asset | Apache-2.0 |
+| `canton-open-source` 3.5.18 | Digital Asset | Apache-2.0 |
+| Canton / Splice 0.8.1 container images used for LocalNet | Digital Asset, Decentralized Canton Sync | Apache-2.0 |
+| `canton-devkit` 0.18.0 | BitDynamics AB | see upstream repository |
+| Eclipse Temurin JDK 21 | Eclipse Adoptium | GPL-2.0 with Classpath Exception |
+| PostgreSQL 14, nginx 1.27 (LocalNet support containers) | respective projects | PostgreSQL Licence, BSD-2-Clause |
+
+The production DARs `privity-disclosure-1.0.0.dar` and `privity-1.0.0.dar` depend only on
+`daml-prim` and `daml-stdlib`. Verified with `dpm inspect-dar`: neither contains a
+reference to `daml-script`. Test code lives in a separate package, `privity-tests`, so
+that the packages intended for a participant node carry no test tooling.
+
+## Data and factual sources
+
+No third-party dataset is redistributed in this repository. Figures cited in the project
+materials are quoted with attribution from public regulatory and industry documents, and
+each source is recorded with its terms, its exact attribution and its verification status
+in `DATA-SOURCES.md` in the project workspace. Sources include publications of the
+Luxembourg CSSF, ESMA and the US SEC, plus published analysis by Deloitte Luxembourg and
+Morgan Lewis, each attributed in place.
+
+## Licence headers
+
+Every `.daml` source file carries an SPDX header, so the terms travel with the file
+rather than living only in this repository.

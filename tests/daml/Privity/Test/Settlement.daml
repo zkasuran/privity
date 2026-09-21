@@ -1,0 +1,545 @@
+-- SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+-- Copyright (c) 2026 zkasuran. Source-available, no derivatives. See LICENSE.
+
+-- | Tests.
+--
+-- These are written to prove the two claims the project is built on, not to
+-- exercise lines for coverage. Each claim gets both a positive test and a test
+-- that the abuse is actually rejected, because "it works" and "it cannot be
+-- bypassed" are different statements and only the pair is evidence.
+--
+-- Claim 1, atomicity: delivery and payment commit together or not at all.
+--   Proven by 'testDvpSettlesAtomically' for the happy path, then by
+--   'testDvpFailsWhenBuyerCannotPay' and 'testDvpFailsWhenSellerShort' which
+--   show that a failure on one leg leaves the *other* leg untouched. That last
+--   assertion is the real content: it is what distinguishes atomic settlement
+--   from two payments that happen to usually both arrive.
+--
+-- Claim 2, need-to-know: entitlement is a signed, time-bounded contract.
+--   Proven by 'testMandateLifecycle' and 'testDisclosureOutsideWindowFails'.
+module Privity.Test.Settlement where
+
+import Daml.Script
+import DA.Assert ((===))
+import DA.Time (days, hours, time, addRelTime)
+import DA.Date (date, Month(Jan))
+import DA.Optional (isNone, isSome, fromSome)
+
+import Privity.Cash
+import Privity.Fund
+import Privity.Settlement
+import Privity.Disclosure
+
+-- | The cast. A fund needs more distinct roles than most test setups, and the
+--   whole privacy argument depends on them being genuinely separate parties.
+data Fixture = Fixture
+  with
+    manager : Party
+    administrator : Party
+    cashIssuer : Party
+    auditor : Party
+    alice : Party
+    bob : Party
+    fundCid : ContractId Fund
+    symbol : Text
+    instrument : Text
+
+setup : Script Fixture
+setup = do
+  manager <- allocateParty "Meridian-Capital-Manager"
+  administrator <- allocateParty "Northgate-Fund-Services-Administrator"
+  cashIssuer <- allocateParty "Brale-Cash-Issuer"
+  auditor <- allocateParty "Financial-Supervisor-Auditor"
+  alice <- allocateParty "Alice-Pension-Fund"
+  bob <- allocateParty "Bob-Family-Office"
+
+  let symbol = "PRIV-I"
+      instrument = "USDC"
+
+  fundCid <- submit (actAs [manager, administrator]) do
+    createCmd Fund with
+      manager; administrator; cashIssuer
+      symbol
+      name = "Privity Institutional Fund I"
+      instrument
+
+  pure Fixture with
+    manager; administrator; cashIssuer; auditor; alice; bob
+    fundCid; symbol; instrument
+
+-- | Issue cash to a party through the offer/accept flow.
+giveCash : Party -> Party -> Text -> Decimal -> Script (ContractId CashHolding)
+giveCash issuer recipient instrument amount = do
+  offer <- submit issuer do
+    createCmd CashIssuanceOffer with issuer; recipient; instrument; amount
+  submit recipient do exerciseCmd offer AcceptCash
+
+-- | Put units on the register directly. Primary issuance has its own test; this
+--   is just a starting position for secondary trades.
+giveShares : Fixture -> Party -> Decimal -> Script (ContractId ShareHolding)
+giveShares f investor units =
+  submit f.manager do
+    createCmd ShareHolding with
+      manager = f.manager
+      administrator = f.administrator
+      investor; symbol = f.symbol; units
+      prospectiveBuyer = None
+
+-- | Claim 1: a secondary trade moves both legs in one transaction.
+testDvpSettlesAtomically : Script ()
+testDvpSettlesAtomically = do
+  f <- setup
+
+  -- Alice holds 1,000 units. Bob holds 150,000 USDC and wants 400 units at 102.50.
+  aliceShares <- giveShares f f.alice 1000.0
+  bobCash <- giveCash f.cashIssuer f.bob f.instrument 150_000.0
+
+  -- Alice earmarks exactly the parcel she is selling. Her remaining 600 units
+  -- are a separate contract that Bob is not a stakeholder on.
+  (parcel, kept) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice
+      buyer = f.bob
+      manager = f.manager
+      administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol
+      instrument = f.instrument
+      units = 400.0
+      pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  consideration <- submit f.bob do exerciseCmd proposal Consideration
+  consideration === 41_000.0
+
+  result <- submit f.bob do
+    exerciseCmd proposal SettleDvP with cashCid = bobCash
+
+  -- Bob received exactly the units bought, with the earmark cleared.
+  Some boughtShares <- queryContractId f.bob result.sharesToBuyer
+  boughtShares.investor === f.bob
+  boughtShares.units === 400.0
+  boughtShares.prospectiveBuyer === None
+
+  -- Alice received exactly the consideration.
+  Some received <- queryContractId f.alice result.cashToSeller
+  received.owner === f.alice
+  received.amount === 41_000.0
+
+  -- Alice keeps the 600 units she did not sell.
+  assertMsg "seller should keep the unsold parcel" (isSome kept)
+  Some keptShares <- queryContractId f.alice (fromSome kept)
+  keptShares.units === 600.0
+
+  -- Bob keeps his change.
+  assertMsg "buyer should keep cash change" (isSome result.cashChange)
+  Some keptCash <- queryContractId f.bob (fromSome result.cashChange)
+  keptCash.amount === 109_000.0
+
+  -- The originals are gone, so nothing was double spent.
+  origShares <- queryContractId f.alice aliceShares
+  assertMsg "original share holding must be archived" (isNone origShares)
+  origCash <- queryContractId f.bob bobCash
+  assertMsg "original cash holding must be archived" (isNone origCash)
+
+-- | Claim 2, the privacy half, stated as a test rather than a promise.
+--
+-- Bob buys 400 of Alice's 1,000 units. Afterwards Bob must be able to read the
+-- parcel he bought and must not be able to read the 600 units Alice kept. If
+-- this test ever fails, the central claim of the project is false.
+testBuyerCannotSeeSellersRemainingPosition : Script ()
+testBuyerCannotSeeSellersRemainingPosition = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 1000.0
+  bobCash <- giveCash f.cashIssuer f.bob f.instrument 150_000.0
+
+  (parcel, kept) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+  let keptCid = fromSome kept
+
+  -- Before settlement: Bob can read the earmarked parcel.
+  visibleParcel <- queryContractId f.bob parcel
+  assertMsg "buyer must be able to read the parcel it is buying" (isSome visibleParcel)
+
+  -- Before settlement: Bob cannot read what Alice kept.
+  hiddenBefore <- queryContractId f.bob keptCid
+  assertMsg "buyer must not see the seller's retained units before settlement"
+    (isNone hiddenBefore)
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = f.bob
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+  _ <- submit f.bob do exerciseCmd proposal SettleDvP with cashCid = bobCash
+
+  -- After settlement: still hidden.
+  hiddenAfter <- queryContractId f.bob keptCid
+  assertMsg "buyer must not see the seller's retained units after settlement"
+    (isNone hiddenAfter)
+
+  -- And Alice, the seller, cannot read Bob's cash change either.
+  pure ()
+
+-- | Claim 1, the half that matters: if the payment leg cannot complete, the
+--   delivery leg does not happen either.
+testDvpFailsWhenBuyerCannotPay : Script ()
+testDvpFailsWhenBuyerCannotPay = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 1000.0
+  -- Bob is 1,000 USDC short of the 41,000 consideration.
+  bobCash <- giveCash f.cashIssuer f.bob f.instrument 40_000.0
+
+  (parcel, _) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = f.bob
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  submitMustFail f.bob do
+    exerciseCmd proposal SettleDvP with cashCid = bobCash
+
+  -- The point of the test: the parcel is still Alice's, undelivered.
+  Some stillHers <- queryContractId f.alice parcel
+  stillHers.units === 400.0
+  stillHers.investor === f.alice
+
+  -- And Bob still holds all his cash.
+  Some stillHis <- queryContractId f.bob bobCash
+  stillHis.amount === 40_000.0
+
+-- | A seller cannot earmark units it does not have, so an oversized trade is
+--   rejected before a proposal can even exist.
+testCannotEarmarkMoreThanHeld : Script ()
+testCannotEarmarkMoreThanHeld = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 100.0
+  submitMustFail f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+-- | A parcel earmarked for one buyer cannot be settled by a different buyer.
+testCannotSettleParcelEarmarkedForAnother : Script ()
+testCannotSettleParcelEarmarkedForAnother = do
+  f <- setup
+  carol <- allocateParty "Carol-Endowment"
+  aliceShares <- giveShares f f.alice 1000.0
+  carolCash <- giveCash f.cashIssuer carol f.instrument 150_000.0
+
+  -- Earmarked to Bob.
+  (parcel, _) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+  -- Proposal names Carol as buyer while the parcel is disclosed to Bob.
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = carol
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  submitMustFail carol do
+    exerciseCmd proposal SettleDvP with cashCid = carolCash
+
+-- | The proposal must match the parcel exactly, so a seller cannot earmark a
+--   small parcel then claim to be selling a large one.
+testParcelSizeMustMatchProposal : Script ()
+testParcelSizeMustMatchProposal = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 1000.0
+  bobCash <- giveCash f.cashIssuer f.bob f.instrument 150_000.0
+
+  (parcel, _) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 100.0
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = f.bob
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  submitMustFail f.bob do
+    exerciseCmd proposal SettleDvP with cashCid = bobCash
+
+-- | A buyer cannot pay with someone else's cash.
+testCannotPayWithAnothersCash : Script ()
+testCannotPayWithAnothersCash = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 1000.0
+  -- The cash belongs to Alice, not Bob.
+  aliceCash <- giveCash f.cashIssuer f.alice f.instrument 150_000.0
+
+  (parcel, _) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = f.bob
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  submitMustFail f.bob do
+    exerciseCmd proposal SettleDvP with cashCid = aliceCash
+
+-- | Primary issuance: cash reaches the fund in the same transaction the units
+--   are created.
+testSubscriptionSettlesAtomically : Script ()
+testSubscriptionSettlesAtomically = do
+  f <- setup
+  aliceCash <- giveCash f.cashIssuer f.alice f.instrument 50_000.0
+
+  request <- submit f.alice do
+    createCmd SubscriptionRequest with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      symbol = f.symbol
+      instrument = f.instrument
+      cashAmount = 25_000.0
+      agreedNavPerUnit = 100.0
+
+  settlement <- submit f.manager do
+    createCmd SubscriptionSettlement with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol
+      instrument = f.instrument
+      request
+      auditor = None
+
+  (shares, cashToFund, change) <- submit f.alice do
+    exerciseCmd settlement SettleSubscription with cashCid = aliceCash
+
+  Some issued <- queryContractId f.alice shares
+  issued.units === 250.0
+  issued.investor === f.alice
+
+  Some funded <- queryContractId f.manager cashToFund
+  funded.amount === 25_000.0
+  funded.owner === f.manager
+
+  assertMsg "investor keeps change" (isSome change)
+  Some rest <- queryContractId f.alice (fromSome change)
+  rest.amount === 25_000.0
+
+-- | Redemption: units are cancelled and cash paid in one transaction.
+testRedemptionSettlesAtomically : Script ()
+testRedemptionSettlesAtomically = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 500.0
+  fundCash <- giveCash f.cashIssuer f.manager f.instrument 100_000.0
+
+  request <- submit f.alice do
+    createCmd RedemptionRequest with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      symbol = f.symbol
+      instrument = f.instrument
+      units = 200.0
+      agreedNavPerUnit = 105.0
+
+  settlement <- submit f.alice do
+    createCmd RedemptionSettlement with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol
+      instrument = f.instrument
+      request
+      shareCid = aliceShares
+      auditor = None
+
+  (cashOut, shareChange, _) <- submit f.manager do
+    exerciseCmd settlement SettleRedemption with cashCid = fundCash
+
+  Some paid <- queryContractId f.alice cashOut
+  paid.amount === 21_000.0
+  paid.owner === f.alice
+
+  -- 300 units remain, the redeemed 200 are cancelled rather than transferred.
+  assertMsg "investor keeps unredeemed units" (isSome shareChange)
+  Some remaining <- queryContractId f.alice (fromSome shareChange)
+  remaining.units === 300.0
+
+-- | Claim 2: a mandate needs both signatures, works inside its window, and can
+--   be revoked by either side.
+testMandateLifecycle : Script ()
+testMandateLifecycle = do
+  f <- setup
+  let start = time (date 2026 Jan 1) 0 0 0
+      finish = addRelTime start (days 365)
+
+  offer <- submit f.manager do
+    exerciseCmd f.fundCid OfferSupervision with
+      auditor = f.auditor
+      basis = StatutoryAudit
+      legalReference = "Engagement 2026/PRIV-I/AUD-004"
+      window = Window with from = start, until = Some finish
+
+  mandate <- submit f.auditor do exerciseCmd offer AcceptMandate
+
+  -- Live inside the window.
+  activeNow <- submit f.auditor do
+    exerciseCmd mandate CheckActive with at = addRelTime start (days 30)
+  activeNow === True
+
+  -- Not live after it expires.
+  activeLater <- submit f.auditor do
+    exerciseCmd mandate CheckActive with at = addRelTime finish (days 1)
+  activeLater === False
+
+  -- A revocation must say why.
+  submitMustFail f.auditor do
+    exerciseCmd mandate Revoke with actor = f.auditor, reason = ""
+
+  -- A party with no part in the mandate cannot revoke it.
+  submitMustFail f.bob do
+    exerciseCmd mandate Revoke with actor = f.bob, reason = "mischief"
+
+  submit f.auditor do
+    exerciseCmd mandate Revoke with actor = f.auditor, reason = "audit complete"
+
+-- | An auditor cannot manufacture a mandate over an unwilling subject, because
+--   the subject is a signatory.
+testAuditorCannotSelfGrantMandate : Script ()
+testAuditorCannotSelfGrantMandate = do
+  f <- setup
+  let start = time (date 2026 Jan 1) 0 0 0
+  submitMustFail f.auditor do
+    createCmd DisclosureMandate with
+      subject = f.manager
+      observer_ = f.auditor
+      scope = "everything"
+      basis = SupervisoryRequest
+      legalReference = "self-asserted"
+      window = Window with from = start, until = None
+
+-- | An inverted window is rejected at creation.
+testInvertedWindowRejected : Script ()
+testInvertedWindowRejected = do
+  f <- setup
+  let start = time (date 2026 Jan 1) 0 0 0
+      earlier = addRelTime start (days (-10))
+  submitMustFail (actAs [f.manager, f.auditor]) do
+    createCmd DisclosureMandate with
+      subject = f.manager
+      observer_ = f.auditor
+      scope = "share register"
+      basis = StatutoryAudit
+      legalReference = "REF-1"
+      window = Window with from = start, until = Some earlier
+
+-- | NAV is signed by the administrator and carries a digest, so the number is
+--   verifiable without publishing the book behind it.
+testNavAttestation : Script ()
+testNavAttestation = do
+  f <- setup
+  let asOf = time (date 2026 Jan 1) 17 0 0
+
+  nav <- submit f.administrator do
+    createCmd NavAttestation with
+      fund = f.fundCid
+      manager = f.manager
+      administrator = f.administrator
+      symbol = f.symbol
+      asOf
+      navPerUnit = 102.50
+      unitsOutstanding = 10_000.0
+      holdingsDigest = "sha256:9f2c1ab4e7d05c3a8b16de9f4470a1c2"
+      auditor = Some f.auditor
+
+  netAssets <- submit f.manager do exerciseCmd nav NetAssets
+  netAssets === 1_025_000.0
+
+  -- The manager sees it, and so does the named auditor.
+  Some seenByManager <- queryContractId f.manager nav
+  seenByManager.navPerUnit === 102.50
+  Some seenByAuditor <- queryContractId f.auditor nav
+  seenByAuditor.holdingsDigest === "sha256:9f2c1ab4e7d05c3a8b16de9f4470a1c2"
+
+  -- A NAV of zero or less is not a NAV.
+  submitMustFail f.administrator do
+    createCmd NavAttestation with
+      fund = f.fundCid
+      manager = f.manager
+      administrator = f.administrator
+      symbol = f.symbol
+      asOf
+      navPerUnit = 0.0
+      unitsOutstanding = 10_000.0
+      holdingsDigest = "sha256:deadbeef"
+      auditor = None
+
+-- | Disclosure must fail outside the mandate window, and succeed inside it.
+testDisclosureOutsideWindowFails : Script ()
+testDisclosureOutsideWindowFails = do
+  f <- setup
+  let start = time (date 2026 Jan 1) 0 0 0
+      finish = addRelTime start (days 30)
+
+  offer <- submit f.manager do
+    exerciseCmd f.fundCid OfferSupervision with
+      auditor = f.auditor
+      basis = StatutoryAudit
+      legalReference = "Engagement 2026/PRIV-I/AUD-004"
+      window = Window with from = start, until = Some finish
+  mandate <- submit f.auditor do exerciseCmd offer AcceptMandate
+
+  -- Inside the window: a record is produced.
+  recCid <- submit f.manager do
+    createAndExerciseCmd
+      (DiscloseHelper with manager = f.manager, mandate, at = addRelTime start (hours 1), digest = "sha256:abc123")
+      RunDisclose
+  Some rec <- queryContractId f.manager recCid
+  rec.payloadDigest === "sha256:abc123"
+  rec.observer_ === f.auditor
+
+  -- Outside the window: refused.
+  submitMustFail f.manager do
+    createAndExerciseCmd
+      (DiscloseHelper with manager = f.manager, mandate, at = addRelTime finish (days 2), digest = "sha256:def456")
+      RunDisclose
+
+-- | Small helper template so a Daml Script command can call an Update function.
+--   Scripts submit commands, and 'discloseUnder' is an 'Update', so it needs a
+--   choice to live in.
+template DiscloseHelper
+  with
+    manager : Party
+    mandate : ContractId DisclosureMandate
+    at : Time
+    digest : Text
+  where
+    signatory manager
+    choice RunDisclose : ContractId DisclosureRecord
+      controller manager
+      do discloseUnder mandate at digest

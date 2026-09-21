@@ -1,0 +1,214 @@
+-- SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+-- Copyright (c) 2026 zkasuran. Source-available, no derivatives. See LICENSE.
+
+-- | The fund: share register, subscriptions, redemptions and NAV attestation.
+--
+-- Three parties with genuinely different entitlements, which is the reason this
+-- belongs on Canton rather than in one database:
+--
+--   * the investor knows its own holding and nothing about anyone else's,
+--   * the administrator computes NAV and therefore does see the whole book,
+--   * the auditor can look, but only under a mandate that both sides signed.
+--
+-- The NAV attestation is the interesting piece. A fund has to publish a number
+-- that everyone relies on, while the holdings behind that number stay
+-- confidential. So the attestation carries a digest of the book instead of the
+-- book, and an auditor with the real holdings can recompute the digest and check
+-- the administrator was honest. Investors get the number, the auditor gets
+-- verifiability, nobody gets a list of their co-investors.
+module Privity.Fund where
+
+import Privity.Disclosure
+import DA.Optional (optionalToList)
+
+-- | Static facts about a fund, created once by the manager and the administrator
+--   together. Both sign because an administrator that has not agreed to serve
+--   cannot be named as the party that will produce NAV.
+template Fund
+  with
+    manager : Party
+      -- ^ The fund manager, responsible for the mandate and the portfolio.
+    administrator : Party
+      -- ^ Independent administrator that strikes NAV.
+    cashIssuer : Party
+      -- ^ Issuer of the stablecoin that forms the cash leg.
+    symbol : Text
+    name : Text
+    instrument : Text
+      -- ^ The cash instrument subscriptions settle in, e.g. "USDC".
+  where
+    signatory manager, administrator
+    ensure symbol /= "" && name /= "" && instrument /= ""
+
+    -- | Offer to place a fund under supervision. Delegates to the reusable
+    --   disclosure package rather than modelling entitlement again here.
+    nonconsuming choice OfferSupervision : ContractId DisclosureMandateOffer
+      with
+        auditor : Party
+        basis : DisclosureBasis
+        legalReference : Text
+        window : Window
+      controller manager
+      do
+        create DisclosureMandateOffer with
+          subject = manager
+          observer_ = auditor
+          scope = symbol <> " share register and NAV"
+          basis; legalReference; window
+
+-- | A holding of fund shares.
+--
+-- Stakeholders are the manager, the administrator and the investor. The
+-- administrator is a stakeholder because it cannot strike NAV without seeing the
+-- register. No other investor appears, so the register is private per holder
+-- even though it is one logical register.
+--
+-- 'prospectiveBuyer' is how a parcel becomes visible to a counterparty without
+-- the seller's whole position becoming visible. A buyer needs to verify what it
+-- is about to pay for, which means it has to be able to read that contract. If
+-- the seller simply added the buyer as an observer on its holding, the buyer
+-- would learn the seller's total position, which is exactly the leak this
+-- project exists to avoid. So the seller splits off the parcel first and
+-- discloses only that.
+template ShareHolding
+  with
+    manager : Party
+    administrator : Party
+    investor : Party
+    symbol : Text
+    units : Decimal
+    prospectiveBuyer : Optional Party
+      -- ^ Set only while a specific sale is pending, then cleared on transfer.
+  where
+    signatory manager
+    observer administrator, investor, optionalToList prospectiveBuyer
+    ensure units > 0.0
+
+    -- | Hand the parcel over, clearing any pending-sale disclosure so the new
+    --   owner's holding is not still readable by a counterparty.
+    choice TransferShares : ContractId ShareHolding
+      with
+        newInvestor : Party
+      controller investor
+      do create this with investor = newInvestor, prospectiveBuyer = None
+
+    choice SplitShares : (ContractId ShareHolding, Optional (ContractId ShareHolding))
+      with
+        splitUnits : Decimal
+      controller investor
+      do
+        assertMsg "split units must be positive" (splitUnits > 0.0)
+        assertMsg "cannot split more units than held" (splitUnits <= units)
+        taken <- create this with units = splitUnits
+        if splitUnits == units
+          then pure (taken, None)
+          else do
+            rest <- create this with units = units - splitUnits
+            pure (taken, Some rest)
+
+    -- | Split off an exact parcel and disclose just that parcel to a named
+    --   buyer. Returns (parcel, remainder). The remainder keeps no disclosure.
+    choice EarmarkForSale : (ContractId ShareHolding, Optional (ContractId ShareHolding))
+      with
+        buyer : Party
+        saleUnits : Decimal
+      controller investor
+      do
+        assertMsg "sale units must be positive" (saleUnits > 0.0)
+        assertMsg "cannot earmark more units than held" (saleUnits <= units)
+        assertMsg "cannot sell to yourself" (buyer /= investor)
+        parcel <- create this with
+          units = saleUnits
+          prospectiveBuyer = Some buyer
+        if saleUnits == units
+          then pure (parcel, None)
+          else do
+            rest <- create this with
+              units = units - saleUnits
+              prospectiveBuyer = None
+            pure (parcel, Some rest)
+
+    -- | Withdraw a pending sale disclosure without moving anything.
+    choice CancelEarmark : ContractId ShareHolding
+      controller investor
+      do create this with prospectiveBuyer = None
+
+-- | The administrator's signed statement of NAV at a point in time.
+--
+-- 'holdingsDigest' commits to the portfolio the number was derived from. The
+-- digest is what makes the attestation checkable without publishing the book:
+-- anyone entitled to the holdings can recompute it, and anyone not entitled
+-- learns nothing from it.
+template NavAttestation
+  with
+    fund : ContractId Fund
+    manager : Party
+    administrator : Party
+    symbol : Text
+    asOf : Time
+    navPerUnit : Decimal
+    unitsOutstanding : Decimal
+    holdingsDigest : Text
+    auditor : Optional Party
+  where
+    signatory administrator
+    observer manager, optionalToList auditor
+    ensure navPerUnit > 0.0
+        && unitsOutstanding >= 0.0
+        && holdingsDigest /= ""
+
+    -- | Total net assets implied by the attestation.
+    nonconsuming choice NetAssets : Decimal
+      controller manager
+      do pure (navPerUnit * unitsOutstanding)
+
+-- | An investor's request to subscribe, and the manager's acceptance.
+--
+-- Subscription is deliberately two steps. The investor commits an exact cash
+-- amount at a NAV it has seen, and the manager accepts, which is the moment the
+-- atomic exchange happens. See "Privity.Settlement".
+template SubscriptionRequest
+  with
+    manager : Party
+    administrator : Party
+    investor : Party
+    symbol : Text
+    instrument : Text
+    cashAmount : Decimal
+    agreedNavPerUnit : Decimal
+  where
+    signatory investor
+    observer manager
+    ensure cashAmount > 0.0 && agreedNavPerUnit > 0.0
+
+    -- | Units the investor is entitled to at the agreed NAV.
+    nonconsuming choice UnitsDue : Decimal
+      controller manager
+      do pure (cashAmount / agreedNavPerUnit)
+
+    choice WithdrawSubscription : ()
+      controller investor
+      do pure ()
+
+-- | An investor's request to redeem units for cash.
+template RedemptionRequest
+  with
+    manager : Party
+    administrator : Party
+    investor : Party
+    symbol : Text
+    instrument : Text
+    units : Decimal
+    agreedNavPerUnit : Decimal
+  where
+    signatory investor
+    observer manager
+    ensure units > 0.0 && agreedNavPerUnit > 0.0
+
+    nonconsuming choice CashDue : Decimal
+      controller manager
+      do pure (units * agreedNavPerUnit)
+
+    choice WithdrawRedemption : ()
+      controller investor
+      do pure ()

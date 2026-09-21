@@ -1,0 +1,183 @@
+-- SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+-- Copyright (c) 2026 zkasuran. Source-available, no derivatives. See LICENSE.
+
+-- | Need-to-know disclosure primitives for Canton applications.
+--
+-- Canton already gives you sub-transaction privacy: a party sees a contract only
+-- when it is a stakeholder. That is the mechanism. What applications keep
+-- rebuilding by hand is the *policy* on top of it, and they usually get one of
+-- two things wrong.
+--
+-- The first mistake is widening disclosure permanently. A regulated workflow
+-- needs an auditor to be able to look, so the auditor is added as an observer on
+-- every contract forever. Now the auditor sees positions it has no mandate for,
+-- and nothing records why it was entitled to look.
+--
+-- The second mistake is disclosure with no evidence. The auditor is granted
+-- access out of band, so afterwards nobody can prove what was shown, to whom, or
+-- under which clause.
+--
+-- This module models the entitlement itself as a contract, so that visibility is
+-- always traceable to a mandate that both sides signed, is bounded in time, and
+-- leaves an append-only record. It is deliberately free of any asset or fund
+-- logic so that any Canton application can depend on it.
+module Privity.Disclosure where
+
+import DA.Optional (isSome)
+
+-- | Why a party is entitled to see something.
+--
+-- Naming the basis in the contract matters more than it looks. "The auditor can
+-- see it" is not a control. "The auditor can see it because of this clause,
+-- until this date" is, and it is the sentence a supervisor actually asks for.
+data DisclosureBasis
+  = StatutoryAudit
+    -- ^ A statutory or regulatory audit mandate.
+  | ContractualRight
+    -- ^ A right the counterparty granted by agreement, e.g. an LP side letter.
+  | SupervisoryRequest
+    -- ^ A specific, bounded request from a supervisor.
+  | InvestorReporting
+    -- ^ Reporting owed to a holder about their own position.
+  deriving (Eq, Show)
+
+-- | A time window. Nothing on the upper bound means open ended.
+data Window = Window
+  with
+    from : Time
+    until : Optional Time
+  deriving (Eq, Show)
+
+-- | Is a time inside the window?
+inWindow : Window -> Time -> Bool
+inWindow w t =
+  t >= w.from && case w.until of
+    None -> True
+    Some end -> t <= end
+
+-- | A window is well formed when it is not inverted.
+validWindow : Window -> Bool
+validWindow w = case w.until of
+  None -> True
+  Some end -> end > w.from
+
+-- | An entitlement to observe a defined scope of one subject's activity.
+--
+-- Both the subject and the observer are signatories, on purpose. If only the
+-- observer signed, any party could assert supervision over anyone. If only the
+-- subject signed, a firm could manufacture evidence of having been audited by a
+-- regulator that never agreed. Requiring both makes the mandate mean something.
+template DisclosureMandate
+  with
+    subject : Party
+      -- ^ The party whose activity is in scope.
+    observer_ : Party
+      -- ^ The entitled observer, e.g. an auditor or supervisor.
+    scope : Text
+      -- ^ What the mandate covers, e.g. "PRIV-FUND-I share register and NAV".
+    basis : DisclosureBasis
+      -- ^ The ground the entitlement rests on.
+    legalReference : Text
+      -- ^ The citable clause, engagement letter or request id.
+    window : Window
+      -- ^ When the entitlement is live.
+  where
+    signatory subject, observer_
+    ensure scope /= ""
+        && legalReference /= ""
+        && validWindow window
+
+    -- | Confirm the mandate covers a point in time. Non-consuming because
+    --   checking an entitlement must not spend it.
+    nonconsuming choice CheckActive : Bool
+      with
+        at : Time
+      controller observer_
+      do pure (inWindow window at)
+
+    -- | Either side can end the mandate early. An auditor that has finished
+    --   should be able to give the access back, and a subject whose obligation
+    --   has lapsed should not need the auditor's cooperation to close it.
+    choice Revoke : ()
+      with
+        actor : Party
+        reason : Text
+      controller actor
+      do
+        assertMsg "only the subject or the observer may revoke"
+          (actor == subject || actor == observer_)
+        assertMsg "a revocation must state a reason" (reason /= "")
+        pure ()
+
+-- | Append-only evidence that a specific disclosure happened.
+--
+-- The record carries a digest rather than the disclosed payload. Putting the
+-- payload in the log would defeat the point: the log is visible to both sides
+-- and to anyone they later add, so it must not become a second copy of the
+-- private data it describes.
+template DisclosureRecord
+  with
+    subject : Party
+    observer_ : Party
+    mandate : ContractId DisclosureMandate
+      -- ^ The entitlement this disclosure was made under.
+    scope : Text
+    payloadDigest : Text
+      -- ^ Commitment to what was disclosed, not the content itself.
+    disclosedAt : Time
+  where
+    signatory subject
+    observer observer_
+    ensure payloadDigest /= "" && scope /= ""
+
+-- | Record a disclosure made under a mandate, after checking the mandate is
+--   live at that moment. Returns the evidence contract.
+--
+-- Callers should use this rather than creating a 'DisclosureRecord' directly,
+-- because this is where the entitlement is actually enforced.
+discloseUnder :
+  ContractId DisclosureMandate
+  -> Time
+  -> Text
+  -> Update (ContractId DisclosureRecord)
+discloseUnder mandateCid at payloadDigest = do
+  m <- fetch mandateCid
+  assertMsg "the disclosure mandate is not active at this time"
+    (inWindow m.window at)
+  create DisclosureRecord with
+    subject = m.subject
+    observer_ = m.observer_
+    mandate = mandateCid
+    scope = m.scope
+    payloadDigest
+    disclosedAt = at
+
+-- | A proposal, so a mandate can be set up without both parties being online in
+--   the same command. The subject offers; the observer accepts and the mandate
+--   exists with both signatures.
+template DisclosureMandateOffer
+  with
+    subject : Party
+    observer_ : Party
+    scope : Text
+    basis : DisclosureBasis
+    legalReference : Text
+    window : Window
+  where
+    signatory subject
+    observer observer_
+
+    choice AcceptMandate : ContractId DisclosureMandate
+      controller observer_
+      do
+        create DisclosureMandate with
+          subject; observer_; scope; basis; legalReference; window
+
+    choice DeclineMandate : ()
+      controller observer_
+      do pure ()
+
+-- | Convenience predicate used by dependent packages when they need to know
+--   whether an optional auditor slot is filled.
+hasAuditor : Optional Party -> Bool
+hasAuditor = isSome

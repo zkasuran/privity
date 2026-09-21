@@ -1,0 +1,90 @@
+-- SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+-- Copyright (c) 2026 zkasuran. Source-available, no derivatives. See LICENSE.
+
+-- | The cash leg.
+--
+-- A tokenized fund settles against money. On Canton that money is normally a
+-- regulated stablecoin issued by a party that can redeem it, so the model here
+-- is a holding controlled by its owner and signed by its issuer, not a balance
+-- in a global map.
+--
+-- The privacy property that matters: a holding's stakeholders are its issuer and
+-- its owner. No other investor in the same fund is a stakeholder, so no other
+-- investor learns the size of this one's wallet. That falls out of Canton's
+-- stakeholder rule rather than from anything clever here, which is the point.
+module Privity.Cash where
+
+-- | A cash holding, denominated in a named instrument such as "USDC".
+--
+-- Only the issuer signs. The owner is an observer and controls transfer. When
+-- 'Transfer' runs, the issuer's authority arrives through the contract itself,
+-- which is what lets a new holding be created for the recipient without the
+-- issuer having to co-sign every payment.
+template CashHolding
+  with
+    issuer : Party
+    owner : Party
+    instrument : Text
+    amount : Decimal
+  where
+    signatory issuer
+    observer owner
+    ensure amount > 0.0 && instrument /= ""
+
+    -- | Hand the whole holding to someone else.
+    choice TransferCash : ContractId CashHolding
+      with
+        newOwner : Party
+      controller owner
+      do create this with owner = newOwner
+
+    -- | Split off an exact amount, returning (transferred, remainder).
+    --
+    -- Splitting exists because settlement needs an exact figure. Without it the
+    -- buyer would have to hold a holding of precisely the right size before it
+    -- could trade, which is not how anyone's cash actually sits.
+    choice SplitCash : (ContractId CashHolding, Optional (ContractId CashHolding))
+      with
+        splitAmount : Decimal
+      controller owner
+      do
+        assertMsg "split amount must be positive" (splitAmount > 0.0)
+        assertMsg "cannot split more than the holding" (splitAmount <= amount)
+        taken <- create this with amount = splitAmount
+        if splitAmount == amount
+          then pure (taken, None)
+          else do
+            rest <- create this with amount = amount - splitAmount
+            pure (taken, Some rest)
+
+    -- | Merge two holdings of the same issuer, owner and instrument.
+    choice MergeCash : ContractId CashHolding
+      with
+        otherCid : ContractId CashHolding
+      controller owner
+      do
+        other <- fetch otherCid
+        assertMsg "can only merge the same instrument" (other.instrument == instrument)
+        assertMsg "can only merge holdings of the same issuer" (other.issuer == issuer)
+        assertMsg "can only merge holdings of the same owner" (other.owner == owner)
+        archive otherCid
+        create this with amount = amount + other.amount
+
+-- | An issuance offer, so the issuer cannot push a holding onto an unwilling
+--   recipient and the recipient's acceptance is on the record.
+template CashIssuanceOffer
+  with
+    issuer : Party
+    recipient : Party
+    instrument : Text
+    amount : Decimal
+  where
+    signatory issuer
+    observer recipient
+    ensure amount > 0.0
+
+    choice AcceptCash : ContractId CashHolding
+      controller recipient
+      do
+        create CashHolding with
+          issuer; owner = recipient; instrument; amount

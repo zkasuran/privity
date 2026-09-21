@@ -1,0 +1,34 @@
+# Daml build output
+.daml/
+*.dar
+
+# Submission and form-fill tooling: carries personal data, form field ids and
+# target lists. Never pushed. See the workspace playbook.
+/submit/
+
+# Demo render outputs and upload packages
+DEMO-*.mp4
+upload-*/
+artifacts/
+
+# Node / UI
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Environment and secrets. Nothing in this repo should ever need them, and the
+# house key is sourced from outside the lane at point of use.
+.env
+.env.*
+!.env.example
+
+# Editor and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Local logs and scratch
+logs/
+*.log

@@ -1,0 +1,67 @@
+Source-Available No-Derivatives License, version 1.0
+SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+
+Copyright (c) 2026 zkasuran. All rights reserved.
+
+This licence covers the software in this repository ("the Software"), which is a
+competition entry submitted to HackCanton Season 3.
+
+1. GRANT
+
+   You are granted a worldwide, royalty-free, non-exclusive licence to:
+
+   a) run the Software for any purpose, including commercial purposes and
+      including evaluation, judging, benchmarking and security review;
+   b) read, inspect, compile, decompile and analyse the Software;
+   c) publish the results of any evaluation, benchmark, review or analysis you
+      perform, including excerpts quoted for the purpose of that commentary.
+
+   Nothing in this licence restricts your ability to describe, criticise or
+   report on the Software.
+
+2. WITHHELD
+
+   You are NOT granted permission to redistribute the Software, in source or
+   compiled form, nor to create or distribute derivative works of it.
+
+   This is the only restriction, and it exists for a specific reason: the
+   Software is a competition entry, and permissive terms would allow a rival to
+   take it, modify it and register the result as a competing entry. Everything a
+   reader, validator, auditor or judge needs in order to evaluate this work is
+   granted in section 1.
+
+3. THIRD-PARTY COMPONENTS
+
+   The Software depends on third-party packages that are licensed separately by
+   their own authors. Those terms govern those components, not this licence. See
+   NOTICE.
+
+4. INTENDED RELICENSING OF THE DISCLOSURE PACKAGE
+
+   The `disclosure/` directory contains `privity-disclosure`, a standalone Daml
+   package with no fund or settlement logic in it, designed so that any Canton
+   application can depend on it.
+
+   It is released under these terms during the HackCanton Season 3 competition
+   period only. After the competition concludes, the intent is to relicense
+   `privity-disclosure` under Apache-2.0 so that it can be adopted freely as an
+   ecosystem primitive.
+
+   The reason for the delay is narrow and stated plainly: a competing entry in
+   the same track works on adjacent tokenized-fund infrastructure, and handing
+   over a ready-made component mid-competition is not something this licence
+   will do. Judges, reviewers and anyone else evaluating the work have full
+   rights under section 1 in the meantime.
+
+   Any relicensing will be recorded with its boundary commit and its date.
+   Relicensing operates forward only: anyone who obtained a copy under these
+   terms keeps those terms and owes nothing.
+
+5. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+   WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

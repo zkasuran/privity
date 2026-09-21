@@ -1,0 +1,233 @@
+-- SPDX-License-Identifier: LicenseRef-zkasuran-SAND-1.0
+-- Copyright (c) 2026 zkasuran. Source-available, no derivatives. See LICENSE.
+
+-- | Atomic delivery versus payment.
+--
+-- This is the module the whole project exists for, so it is worth being precise
+-- about what makes it atomic and why that is hard to get elsewhere.
+--
+-- A share transfer needs the seller's authority. A cash transfer needs the
+-- buyer's authority. Settlement is atomic only if both happen in one committed
+-- transaction, because any ordering of two transactions has a window where one
+-- leg has moved and the other has not. That window is principal risk, and it is
+-- the thing delivery-versus-payment exists to remove.
+--
+-- The Daml mechanism: a proposal contract signed by the seller, exercised by the
+-- buyer. Inside the choice body the transaction carries the seller's authority
+-- (through the contract's signatory) and the buyer's authority (as the
+-- exercising party) at the same time. So both legs can be exercised in one
+-- transaction, and Canton commits it or rejects it whole.
+--
+-- The privacy consequence is the part that needs Canton specifically. The
+-- transaction touches the buyer's cash, the seller's cash, the share register
+-- and the fund. On a broadcast ledger every one of those becomes public to
+-- everyone. Here each participant validates only the views its parties are
+-- stakeholders on, so the settlement is atomic across parties that still cannot
+-- see each other's books.
+module Privity.Settlement where
+
+import Privity.Cash
+import Privity.Fund
+import Privity.Disclosure
+
+import DA.Optional (optionalToList)
+
+-- | What a settlement moved. Returned so callers and tests can assert on the
+--   result rather than re-querying and guessing.
+--
+-- There is no share change field. By the time a proposal exists the seller has
+-- already split the exact parcel it is selling, so settlement moves a whole
+-- parcel and there is nothing left over on that leg.
+data SettlementResult = SettlementResult
+  with
+    sharesToBuyer : ContractId ShareHolding
+    cashToSeller : ContractId CashHolding
+    cashChange : Optional (ContractId CashHolding)
+  deriving (Eq, Show)
+
+-- | A seller's firm offer to deliver an earmarked parcel against payment.
+--
+-- The parcel referenced by 'shareCid' must already be earmarked to this buyer
+-- (see 'EarmarkForSale'). That ordering is not bureaucracy, it is what makes the
+-- trade checkable without leaking: the buyer has to be able to read the contract
+-- it is about to pay for, and earmarking is what discloses exactly that parcel
+-- and nothing else about the seller's book.
+template DvpProposal
+  with
+    seller : Party
+    buyer : Party
+    manager : Party
+    administrator : Party
+    cashIssuer : Party
+    symbol : Text
+    instrument : Text
+    units : Decimal
+    pricePerUnit : Decimal
+    shareCid : ContractId ShareHolding
+      -- ^ The earmarked parcel. Must hold exactly 'units'.
+    auditor : Optional Party
+      -- ^ Where a supervisory mandate is in force, the auditor observes the
+      --   settlement too. Optional, because not every trade is in scope.
+  where
+    signatory seller
+    observer buyer, optionalToList auditor
+    ensure units > 0.0 && pricePerUnit > 0.0
+
+    -- | Total consideration.
+    nonconsuming choice Consideration : Decimal
+      controller buyer
+      do pure (units * pricePerUnit)
+
+    -- | Settle both legs in one transaction.
+    --
+    -- Order inside the body is irrelevant to atomicity: the whole body is one
+    -- transaction. It is written delivery first only because that reads the way
+    -- the trade is described.
+    choice SettleDvP : SettlementResult
+      with
+        cashCid : ContractId CashHolding
+          -- ^ The buyer's cash holding to pay from.
+      controller buyer
+      do
+        let consideration = units * pricePerUnit
+
+        -- The buyer can read this because the parcel was earmarked to it.
+        parcel <- fetch shareCid
+        assertMsg "parcel is not the seller's" (parcel.investor == seller)
+        assertMsg "parcel is for a different fund" (parcel.symbol == symbol)
+        assertMsg "parcel size does not match the proposal" (parcel.units == units)
+        assertMsg "parcel is not earmarked to this buyer"
+          (parcel.prospectiveBuyer == Some buyer)
+
+        cash <- fetch cashCid
+        assertMsg "cash holding is not the buyer's" (cash.owner == buyer)
+        assertMsg "cash holding is the wrong instrument" (cash.instrument == instrument)
+        assertMsg "buyer's cash does not cover the consideration"
+          (cash.amount >= consideration)
+
+        -- Delivery leg. The whole parcel moves, and 'TransferShares' clears the
+        -- earmark so the buyer's new holding is not still readable by anyone.
+        sharesToBuyer <- exercise shareCid TransferShares with
+          newInvestor = buyer
+
+        -- Payment leg. Split so the buyer keeps change.
+        (payment, cashChange) <- exercise cashCid SplitCash with
+          splitAmount = consideration
+        cashToSeller <- exercise payment TransferCash with
+          newOwner = seller
+
+        pure SettlementResult with
+          sharesToBuyer; cashToSeller; cashChange
+
+    choice CancelDvP : ()
+      controller seller
+      do pure ()
+
+-- | Primary issuance settled atomically: cash in, new units out.
+--
+-- Subscription is the same atomicity problem wearing different clothes. The
+-- investor's cash must reach the fund in the same transaction the units are
+-- created, otherwise the fund has either issued units it was not paid for or
+-- taken money without issuing units.
+template SubscriptionSettlement
+  with
+    manager : Party
+    administrator : Party
+    investor : Party
+    cashIssuer : Party
+    symbol : Text
+    instrument : Text
+    request : ContractId SubscriptionRequest
+    auditor : Optional Party
+  where
+    signatory manager
+    observer investor, optionalToList auditor
+
+    choice SettleSubscription : (ContractId ShareHolding, ContractId CashHolding, Optional (ContractId CashHolding))
+      with
+        cashCid : ContractId CashHolding
+          -- ^ Investor's cash holding to fund the subscription from.
+      controller investor
+      do
+        req <- fetch request
+        assertMsg "subscription belongs to another investor" (req.investor == investor)
+        assertMsg "subscription is for another fund" (req.symbol == symbol)
+
+        cash <- fetch cashCid
+        assertMsg "cash holding is not the investor's" (cash.owner == investor)
+        assertMsg "cash holding is the wrong instrument" (cash.instrument == instrument)
+        assertMsg "investor's cash does not cover the subscription"
+          (cash.amount >= req.cashAmount)
+
+        let units = req.cashAmount / req.agreedNavPerUnit
+
+        -- Cash leg: the manager receives the subscription proceeds.
+        (proceeds, change) <- exercise cashCid SplitCash with
+          splitAmount = req.cashAmount
+        cashToFund <- exercise proceeds TransferCash with newOwner = manager
+
+        -- Unit leg: new units issued to the investor.
+        shares <- create ShareHolding with
+          manager; administrator; investor; symbol; units
+          prospectiveBuyer = None
+
+        archive request
+        pure (shares, cashToFund, change)
+
+-- | Redemption settled atomically: units in, cash out.
+template RedemptionSettlement
+  with
+    manager : Party
+    administrator : Party
+    investor : Party
+    cashIssuer : Party
+    symbol : Text
+    instrument : Text
+    request : ContractId RedemptionRequest
+    shareCid : ContractId ShareHolding
+    auditor : Optional Party
+  where
+    signatory investor
+    observer manager, optionalToList auditor
+
+    choice SettleRedemption : (ContractId CashHolding, Optional (ContractId ShareHolding), Optional (ContractId CashHolding))
+      with
+        cashCid : ContractId CashHolding
+          -- ^ The fund's cash holding the redemption is paid from.
+      controller manager
+      do
+        req <- fetch request
+        assertMsg "redemption belongs to another investor" (req.investor == investor)
+
+        share <- fetch shareCid
+        assertMsg "share holding is not the investor's" (share.investor == investor)
+        assertMsg "investor does not hold enough units" (share.units >= req.units)
+
+        cash <- fetch cashCid
+        assertMsg "paying cash holding is not the fund's" (cash.owner == manager)
+        let payout = req.units * req.agreedNavPerUnit
+        assertMsg "fund's cash does not cover the redemption" (cash.amount >= payout)
+
+        -- Units leg: redeemed units are cancelled, not transferred.
+        (redeemed, shareChange) <- exercise shareCid SplitShares with
+          splitUnits = req.units
+        archive redeemed
+
+        -- Cash leg: investor is paid.
+        (payment, cashChange) <- exercise cashCid SplitCash with splitAmount = payout
+        cashToInvestor <- exercise payment TransferCash with newOwner = investor
+
+        archive request
+        pure (cashToInvestor, shareChange, cashChange)
+
+-- | Record that a settlement was disclosed to a supervisor, under a mandate.
+--
+-- Kept separate from the settlement choices on purpose. Settlement must not
+-- depend on an auditor being present, and disclosure must not be able to happen
+-- without an entitlement. Two concerns, two contracts.
+recordSettlementDisclosure :
+  ContractId DisclosureMandate
+  -> Time
+  -> Text
+  -> Update (ContractId DisclosureRecord)
+recordSettlementDisclosure = discloseUnder
