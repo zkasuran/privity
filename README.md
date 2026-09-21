@@ -50,24 +50,23 @@ Three layers, deliberately split into separate packages.
 ### The disclosure layer
 
 Canton gives you sub-transaction privacy as a mechanism. What applications rebuild by hand is
-the policy on top and they usually get one of two things wrong: they widen disclosure
+the policy on top, where they usually get one of two things wrong: they widen disclosure
 permanently by adding an auditor as an observer on everything or they grant access out of band
 so nobody can later prove what was shown and under what authority.
 
 `DisclosureMandate` makes the entitlement a contract. **Both the subject and the observer are
 signatories**, on purpose: if only the observer signed, any party could assert supervision over
-anyone and if only the subject signed, a firm could manufacture evidence of having been
-audited by a regulator that never agreed. Mandates are time-bounded, revocable by either side
-with a stated reason and disclosures recorded against them carry a digest of what was shown
-rather than the content, so the audit log does not become a second copy of the private data it
-describes.
+anyone. If only the subject signed, a firm could manufacture evidence of having been audited
+by a regulator that never agreed. Mandates are time-bounded and revocable by either side with a stated
+reason. Disclosures recorded against them carry a digest of what was shown rather than the
+content, so the audit log does not become a second copy of the private data it describes.
 
 ### Atomic delivery versus payment
 
 A share transfer needs the seller's authority. A cash transfer needs the buyer's. Settlement is
 atomic only if both happen in one committed transaction, because any ordering of two
 transactions leaves a window where one leg has moved and the other has not. That window is
-principal risk and removing it is the entire point of delivery versus payment.
+principal risk. Removing it is the entire point of delivery versus payment.
 
 `DvpProposal` is signed by the seller and exercised by the buyer, so inside the choice body the
 transaction carries both authorities at once. Subscription and redemption work the same way:
