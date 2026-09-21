@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Privity — HackCanton S3 pitch</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  :root{
+    --bg:#0b0d12; --panel:#12151d; --line:#232834; --ink:#e8ecf4; --mut:#8e98ab;
+    --dim:#5c667a; --acc:#4c7dff; --ok:#1fbf75; --bad:#e2574c;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .slide{width:1280px;height:720px;padding:56px 72px 76px;position:relative;overflow:hidden;
+    display:flex;flex-direction:column;justify-content:center;
+    page-break-after:always;break-after:page;
+    background:
+      radial-gradient(760px 420px at 12% -12%,rgba(76,125,255,.13),transparent),
+      radial-gradient(620px 360px at 96% 4%,rgba(31,191,117,.08),transparent),
+      var(--bg);
+    border-bottom:1px solid #000}
+  .slide:last-child{page-break-after:auto;break-after:auto}
+  .kicker{font:12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:18px}
+  h1{font-size:64px;line-height:1.02;letter-spacing:-.03em;margin:0 0 20px}
+  h2{font-size:40px;line-height:1.1;letter-spacing:-.022em;margin:0 0 22px}
+  h2 em{font-style:normal;color:var(--acc)}
+  .lead{font-size:24px;color:var(--ink);max-width:33ch}
+  .sub{font-size:18px;color:var(--mut);max-width:70ch}
+  .num{position:absolute;right:30px;bottom:22px;font:11px var(--mono);color:var(--dim)}
+  .brand{position:absolute;left:72px;bottom:24px;display:flex;gap:9px;align-items:center;
+    font:12px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+  .brand img{width:20px;height:20px;border-radius:5px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:8px}
+  .c3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h3{margin:0 0 8px;font-size:18px}
+  .card p{margin:0;font-size:15px;color:var(--mut)}
+  .big{font-size:46px;font-weight:700;line-height:1;letter-spacing:-.03em}
+  .big.ok{color:var(--ok)} .big.acc{color:var(--acc)}
+  .stat{font:12px var(--mono);color:var(--mut);text-transform:uppercase;letter-spacing:.08em;margin-top:6px}
+  ul{margin:6px 0 0;padding-left:22px;color:var(--mut);font-size:17px}
+  li{margin-bottom:9px}
+  li b{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:16px;margin-top:6px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{font:11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+  td.mono{font-family:var(--mono);font-size:13px}
+  .yes{color:var(--ok);font-weight:700} .no{color:var(--bad);font-weight:700}
+  .quote{border-left:3px solid var(--acc);padding:6px 0 6px 18px;font-size:19px;color:var(--ink);max-width:62ch}
+  .cite{font:12px var(--mono);color:var(--dim);margin-top:8px}
+  .pill{display:inline-block;font:11px var(--mono);padding:3px 9px;border-radius:20px;
+    border:1px solid #14432f;background:#0d2419;color:var(--ok)}
+  .pill.warn{border-color:#3a3320;background:#221d10;color:#e8d9b0}
+  code{font-family:var(--mono);font-size:14px;background:#0a0c11;border:1px solid var(--line);
+    border-radius:5px;padding:2px 6px}
+  .url{font-family:var(--mono);font-size:15px;color:var(--acc)}
+</style>
+</head>
+<body>
+
+<!-- 1. Title -->
+<section class="slide">
+  <div class="kicker">HackCanton Season 3 &middot; Investment Infrastructure</div>
+  <h1>Privity</h1>
+  <p class="lead">Both legs of a tokenized fund trade settle in <b>one Canton transaction</b>,
+     and each counterparty sees only the parcel it is buying.</p>
+  <div style="margin-top:34px" class="sub">
+    Settlement infrastructure for tokenized funds. Built for fund administrators, who hold the
+    share register and produce NAV.
+  </div>
+  <div style="position:absolute;right:72px;top:60px"><img src="logo-256.png" width="136" height="136" style="border-radius:30px"></div>
+  <div class="brand"><img src="logo-256.png"><span>zkasuran</span></div>
+  <div class="num">1</div>
+</section>
+
+<!-- 2. Hook -->
+<section class="slide">
+  <div class="kicker">The problem</div>
+  <h2>Tokenized fund trades still settle <em>like paper</em>.</h2>
+  <p class="sub">Cash moves on one rail. Units are typed into a register afterwards. A human
+     reconciles the gap between them.</p>
+  <div class="c3" style="margin-top:28px">
+    <div class="card">
+      <div class="big">238 &rarr; 462</div>
+      <div class="stat">NAV errors notified to the CSSF, 2019 to 2022</div>
+      <p style="margin-top:12px">Investment compliance breaches <b>fell</b> over the same window.
+         The failure mode that is growing is operational.</p>
+    </div>
+    <div class="card">
+      <div class="big">1 day</div>
+      <div class="stat">SEC proposal, Sept 2026</div>
+      <p style="margin-top:12px">Register posting moves to a one business day standard tied to
+         the settlement cycle.</p>
+    </div>
+    <div class="card">
+      <div class="big">Sept 13</div>
+      <div class="stat">DTCC tokenization on Canton</div>
+      <p style="margin-top:12px">The register is moving on chain whether or not settlement does.</p>
+    </div>
+  </div>
+  <div class="cite" style="margin-top:22px">CSSF figures reported by Deloitte Luxembourg from CSSF activity reports 2017 to 2022. SEC figures per Morgan Lewis analysis of the proposing release.</div>
+  <div class="num">2</div>
+</section>
+
+<!-- 3. Why now, the regulator's own words -->
+<section class="slide">
+  <div class="kicker">Why now</div>
+  <h2>The regulator has already written our spec.</h2>
+  <div class="quote" style="margin-top:20px">
+    &ldquo;for uncertificated securities, prompt posting and turnaround are effectively the
+    same event&rdquo;
+  </div>
+  <div class="cite">SEC, on proposed Rules 17ad-2 and 17ad-10, September 2026</div>
+  <p class="sub" style="margin-top:28px">A transfer and a register update should be one event once
+     securities stop being pieces of paper. Privity makes them literally one transaction.</p>
+  <div class="cols" style="margin-top:22px">
+    <div class="card"><h3>Also in the proposal</h3>
+      <ul style="font-size:16px">
+        <li>&ldquo;item&rdquo; extended to cover <b>blockchains and other distributed ledger-based platforms</b></li>
+        <li>An authorized-persons list you may only act on, which is the shape of our mandate model</li>
+      </ul></div>
+    <div class="card"><h3>Who it lands on</h3>
+      <ul style="font-size:16px">
+        <li><b>~200 registered transfer agents</b> in the exemption being rescinded, covering LP interests, DRIPs and open-end fund securities</li>
+        <li>Small, named, regulated buyer set. High deal value.</li>
+      </ul></div>
+  </div>
+  <div class="num">3</div>
+</section>
+
+<!-- 4. Why this needs Canton -->
+<section class="slide">
+  <div class="kicker">Why Canton</div>
+  <h2>Two properties that no other ledger offers <em>together</em>.</h2>
+  <div class="cols" style="margin-top:26px">
+    <div class="card">
+      <h3>A public chain</h3>
+      <p>Gives you atomic settlement. Also publishes every investor's position to every other
+         investor. For a regulated fund that ends the conversation.</p>
+    </div>
+    <div class="card">
+      <h3>Off-ledger</h3>
+      <p>Gives you confidentiality. Also keeps cash and register as two separate events, which
+         is the problem itself.</p>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:26px">Canton's sub-transaction privacy means one transaction
+     commits across parties while each participant validates only the views its own parties are
+     stakeholders on.</p>
+  <div class="card" style="margin-top:20px;border-color:#1d3a6b;background:#0e1626">
+    <h3>We did not take this on trust</h3>
+    <p style="color:var(--ink)">Our first design had the buyer read the seller's holding to verify
+       the trade. <b>The ledger rejected it</b>, because the buyer is not a stakeholder. Canton
+       enforced the confidentiality property against our own code.</p>
+  </div>
+  <div class="num">4</div>
+</section>
+
+<!-- 5. The insight -->
+<section class="slide">
+  <div class="kicker">The design</div>
+  <h2>Calibrated disclosure, <em>not maximum secrecy</em>.</h2>
+  <p class="sub">The obvious repair was to add the buyer as an observer on the seller's holding.
+     That would have disclosed the seller's entire position. Both versions compile. Both settle
+     correctly. Only a test written to falsify the claim tells them apart.</p>
+  <div class="c3" style="margin-top:26px">
+    <div class="card"><h3>Hide everything</h3><p>The buyer cannot verify what it is paying for. Unusable.</p></div>
+    <div class="card"><h3>Disclose the holding</h3><p>The buyer learns the seller's whole book. Pointless.</p></div>
+    <div class="card" style="border-color:#1d3a6b;background:#0e1626"><h3>Disclose one parcel</h3>
+      <p style="color:var(--ink)">The seller splits exactly the quantity being sold. The buyer verifies
+         that and learns nothing else. The transfer then clears the disclosure.</p></div>
+  </div>
+  <p class="sub" style="margin-top:24px">The engineering is finding the floor between those two
+     failures. For a secondary trade that floor is exactly one parcel.</p>
+  <div class="num">5</div>
+</section>
+
+<!-- 6. Proof -->
+<section class="slide">
+  <div class="kicker">Proof, on a real ledger</div>
+  <h2>Four claims, each verified rather than asserted.</h2>
+  <table>
+    <tr><th>Claim</th><th>Evidence</th><th>Where</th></tr>
+    <tr><td>Both legs commit together</td><td class="mono">1 transaction, 8 events</td><td class="yes">live participant</td></tr>
+    <tr><td>Buyer cannot read the seller's retained units</td><td class="mono">active contract query as buyer returns nothing</td><td class="yes">live participant</td></tr>
+    <tr><td>A short payment settles nothing</td><td class="mono">transaction rejected, parcel undelivered</td><td class="yes">test suite</td></tr>
+    <tr><td>NAV is checkable, not just signed</td><td class="mono">auditor recomputes digest and NAV, both true</td><td class="yes">live participant</td></tr>
+  </table>
+  <div class="c3" style="margin-top:26px">
+    <div class="card"><div class="big ok">18</div><div class="stat">Daml tests passing</div></div>
+    <div class="card"><div class="big acc">~2 min</div><div class="stat">LocalNet from nothing to healthy</div></div>
+    <div class="card"><div class="big">0</div><div class="stat">daml-script in production DARs</div></div>
+  </div>
+  <div class="num">6</div>
+</section>
+
+<!-- 7. Need to know, the matrix -->
+<section class="slide">
+  <div class="kicker">Need to know, read back from the ledger</div>
+  <h2>Four parties. Four different views.</h2>
+  <table>
+    <tr><th>Party</th><th>Why they see what they see</th><th>Sees seller's retained units</th></tr>
+    <tr><td><b>Seller</b></td><td>They are her own units</td><td class="yes">yes, as designed</td></tr>
+    <tr><td><b>Buyer</b></td><td>The claim under test</td><td class="no">no, as required</td></tr>
+    <tr><td><b>Fund administrator</b></td><td>Stakeholder on the register. Cannot strike NAV otherwise</td><td class="yes">yes, as designed</td></tr>
+    <tr><td><b>Auditor</b></td><td>Entitled to the mandate and the attestation, not to positions</td><td class="no">no, as required</td></tr>
+  </table>
+  <p class="sub" style="margin-top:22px">Expected visibility is asserted <b>per role</b>. The
+     administrator seeing the register is correct, not a leak. The test
+     <code>testBuyerCannotSeeSellersRemainingPosition</code> fails the build if the buyer ever
+     gains that visibility.</p>
+  <div class="num">7</div>
+</section>
+
+<!-- 8. What we built -->
+<section class="slide">
+  <div class="kicker">What is built</div>
+  <h2>Three packages. The disclosure layer stands alone <em>on purpose</em>.</h2>
+  <table>
+    <tr><th>Package</th><th>Contents</th><th>Why separate</th></tr>
+    <tr><td class="mono">privity-disclosure</td><td>Mandates, windows, audit records</td><td>Zero fund logic, so any Canton app can depend on it</td></tr>
+    <tr><td class="mono">privity</td><td>Fund, register, cash, NAV, settlement</td><td>The application</td></tr>
+    <tr><td class="mono">privity-tests</td><td>Daml Script suite</td><td>Keeps test tooling out of production DARs</td></tr>
+  </table>
+  <div class="cols" style="margin-top:24px">
+    <div class="card"><h3>Both sides sign a mandate</h3>
+      <p>If only the auditor signed, anyone could assert supervision over anyone. If only the
+         subject signed, a firm could manufacture evidence of an audit that never happened.</p></div>
+    <div class="card"><h3>Upgrade-safe, the hard way</h3>
+      <p>Moving mandate validity to ledger time meant deleting a choice field. Canton refused
+         the upload. The field is retained and ignored, so 1.1.0 vets as a valid upgrade of 1.0.0.</p></div>
+  </div>
+  <div class="num">8</div>
+</section>
+
+<!-- 9. Honest limits -->
+<section class="slide">
+  <div class="kicker">What is not done</div>
+  <h2>Stated here rather than discovered by a judge.</h2>
+  <div class="cols" style="margin-top:20px">
+    <div class="card">
+      <span class="pill warn">the real gap</span>
+      <h3 style="margin-top:12px">Zero practitioner interviews</h3>
+      <p>Problem evidence is documentary and regulator-sourced, which moves problem validation
+         and not market validation. The instrument and a named target list are built. A
+         falsification test is committed in writing: if three ICP interviews say the timing gap
+         is already handled, the wedge is wrong and the product moves.</p>
+    </div>
+    <div class="card">
+      <span class="pill warn">scope, deliberately</span>
+      <h3 style="margin-top:12px">Single synchronizer, LocalNet only</h3>
+      <p>A Daml transaction can only consume contracts on one synchronizer, so atomicity is
+         demonstrated in that topology, which is what the Global Synchronizer provides. The
+         cross-synchronizer case is documented, needs no model change, and carries no settlement
+         risk because no value moves until the atomic step.</p>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:22px">Nothing deployed beyond LocalNet. No production
+     integration with an admin system, which is the largest practical adoption risk.</p>
+  <div class="num">9</div>
+</section>
+
+<!-- 10. Market and model -->
+<section class="slide">
+  <div class="kicker">Who buys, and how</div>
+  <h2>A small, named, regulated buyer set.</h2>
+  <div class="cols">
+    <div class="card"><h3>The person</h3>
+      <ul style="font-size:16px">
+        <li><b>Pain owner:</b> fund accounting or transfer agency lead at a mid-tier administrator, 20 to 60 funds</li>
+        <li><b>Economic buyer:</b> head of operations</li>
+        <li><b>Influencer:</b> the auditor. Not the buyer.</li>
+      </ul></div>
+    <div class="card"><h3>The model</h3>
+      <ul style="font-size:16px">
+        <li><b>Per fund per year</b>, plus a platform fee</li>
+        <li>Not per seat: the value is process containment, not user productivity</li>
+        <li>Land one administrator, expand across its funds. One sale, thirty deployments</li>
+      </ul></div>
+  </div>
+  <div class="card" style="margin-top:22px">
+    <h3>On the neighbour in this track</h3>
+    <p>Alluvren solves the front-end redemption decisioning layer. Privity solves the back-end
+       bilateral settlement and disclosure layer. They may coexist in the same fund workflow.</p>
+  </div>
+  <div class="num">10</div>
+</section>
+
+<!-- 11. Ask -->
+<section class="slide">
+  <div class="kicker">The ask</div>
+  <h2>Three introductions, and one design review.</h2>
+  <div class="c3" style="margin-top:26px">
+    <div class="card"><h3>Introductions</h3><p>Three fund administrators for validation
+      interviews. This is the single highest-value thing anyone here can give us, because it is
+      the one gap we cannot close alone.</p></div>
+    <div class="card"><h3>A design review</h3><p>Should <code>privity-disclosure</code> be
+      upstreamed as an ecosystem primitive? Every Canton team building a multi-party workflow
+      hits this wall, and most will reach for the observer field.</p></div>
+    <div class="card"><h3>Operator guidance</h3><p>What a participant operator considers
+      acceptable for holding a share register in production.</p></div>
+  </div>
+  <p class="sub" style="margin-top:28px">After the competition the disclosure package is intended
+     for Apache-2.0 release, so it can be adopted rather than admired.</p>
+  <div class="num">11</div>
+</section>
+
+<!-- 12. Close -->
+<section class="slide">
+  <div class="kicker">Privity</div>
+  <h2>Settlement that cannot half-complete. Disclosure that cannot overreach.</h2>
+  <table style="margin-top:20px">
+    <tr><th>Demo</th><td class="url">https://zkasuran.github.io/privity-demo/</td></tr>
+    <tr><th>Code</th><td class="url">https://github.com/zkasuran/privity</td></tr>
+    <tr><th>Track</th><td>Investment Infrastructure: Funds, DAOs &amp; Governance Tools</td></tr>
+  </table>
+  <p class="sub" style="margin-top:26px">Every figure in this deck came out of a real Canton
+     participant or a cited public source. Where something is incomplete, the deck says so.</p>
+  <div class="cite" style="margin-top:30px">AI assistance (Claude, Anthropic) was used in developing this project. Design decisions, review and verification are the author's. Verified before submitting: dpm build --all succeeds for three packages, dpm test passes 18 of 18, both production DARs vet on a live Canton participant, and the demo URL returns 200 anonymously.</div>
+  <div class="brand"><img src="logo-256.png"><span>zkasuran &middot; hackcanton s3</span></div>
+  <div class="num">12</div>
+</section>
+
+</body>
+</html>
