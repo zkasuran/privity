@@ -20,6 +20,8 @@ module Privity.Fund where
 
 import Privity.Disclosure
 import DA.Optional (optionalToList)
+import DA.Text (sha256, intercalate)
+import DA.List (sort)
 
 -- | Static facts about a fund, created once by the manager and the administrator
 --   together. Both sign because an administrator that has not agreed to serve
@@ -55,6 +57,39 @@ template Fund
           observer_ = auditor
           scope = symbol <> " share register and NAV"
           basis; legalReference; window
+
+    -- | Strike NAV from a book, computing both the figure and the commitment on ledger.
+    --
+    -- The administrator submits the holdings and the ledger derives `navPerUnit` and
+    -- `holdingsDigest` from them. That is deliberate: if an off-ledger client computed the
+    -- digest, there would be two canonicalisations to keep in agreement, and the first time
+    -- they drifted by a separator or a decimal rendering the commitment would silently stop
+    -- verifying. One implementation, on ledger, is the only version that cannot disagree
+    -- with itself.
+    --
+    -- The holdings appear in this exercise, so they are visible to this contract's
+    -- stakeholders, the manager and the administrator. Both are entitled to the book. The
+    -- auditor becomes an observer of the resulting attestation rather than of the holdings,
+    -- which is the need-to-know posture: it can verify the number against a book it already
+    -- holds, and gains nothing about the book from the attestation itself.
+    nonconsuming choice AttestNav : ContractId NavAttestation
+      with
+        holdings : [HoldingLine]
+        unitsOutstanding : Decimal
+        asOf : Time
+        auditor : Optional Party
+      controller administrator
+      do
+        assertMsg "cannot strike NAV with no units outstanding" (unitsOutstanding > 0.0)
+        assertMsg "cannot strike NAV from an empty book" (holdings /= [])
+        let navPerUnit = portfolioValue holdings / unitsOutstanding
+        create NavAttestation with
+          fund = self
+          manager; administrator; symbol; asOf
+          navPerUnit
+          unitsOutstanding
+          holdingsDigest = holdingsDigestOf holdings
+          auditor
 
 -- | A holding of fund shares.
 --
@@ -133,12 +168,43 @@ template ShareHolding
       controller investor
       do create this with prospectiveBuyer = None
 
+-- | A single holding line in the portfolio a NAV was computed from.
+data HoldingLine = HoldingLine
+  with
+    instrument : Text
+      -- ^ Identifier of the position, e.g. an ISIN.
+    quantity : Decimal
+    unitPrice : Decimal
+  deriving (Eq, Ord, Show)
+
+-- | Canonical serialisation of one line. Fixed field order, fixed separator.
+lineToText : HoldingLine -> Text
+lineToText l = l.instrument <> "|" <> show l.quantity <> "|" <> show l.unitPrice
+
+-- | Commit to a portfolio without publishing it.
+--
+-- The digest has to be *canonical*, meaning two parties holding the same book must compute
+-- the same string, or verification is meaningless. Two things make it canonical here: the
+-- lines are sorted before hashing, so the order a book happens to be listed in cannot change
+-- the result, and each line is serialised with a fixed field order and separator.
+--
+-- This is what lets an entitled party check the administrator's arithmetic without the book
+-- being disclosed to anyone else. It is the difference between an attestation that asserts a
+-- number and one that can be checked.
+holdingsDigestOf : [HoldingLine] -> Text
+holdingsDigestOf lines =
+  "sha256:" <> sha256 (intercalate ";" (map lineToText (sort lines)))
+
+-- | Net asset value implied by a portfolio, for cross-checking an attestation.
+portfolioValue : [HoldingLine] -> Decimal
+portfolioValue = sum . map (\l -> l.quantity * l.unitPrice)
+
 -- | The administrator's signed statement of NAV at a point in time.
 --
--- 'holdingsDigest' commits to the portfolio the number was derived from. The
--- digest is what makes the attestation checkable without publishing the book:
--- anyone entitled to the holdings can recompute it, and anyone not entitled
--- learns nothing from it.
+-- 'holdingsDigest' commits to the portfolio the number was derived from, computed with
+-- 'holdingsDigestOf'. The digest is what makes the attestation checkable without publishing
+-- the book: anyone entitled to the holdings can recompute it, and anyone not entitled learns
+-- nothing from it.
 template NavAttestation
   with
     fund : ContractId Fund
@@ -161,6 +227,36 @@ template NavAttestation
     nonconsuming choice NetAssets : Decimal
       controller manager
       do pure (navPerUnit * unitsOutstanding)
+
+    -- | Recompute the digest from a book and say whether it matches this attestation.
+    --
+    -- Only a party that already holds the portfolio can call this usefully, which is the
+    -- point: verification is available to the entitled and useless to everyone else. It is
+    -- non-consuming because checking an attestation must not archive it.
+    nonconsuming choice VerifyHoldings : Bool
+      with
+        holdings : [HoldingLine]
+        verifier : Party
+      controller verifier
+      do
+        assertMsg "only the manager or a named auditor may verify"
+          (verifier == manager || Some verifier == auditor)
+        pure (holdingsDigestOf holdings == holdingsDigest)
+
+    -- | Recompute NAV per unit from a book and compare with the attested figure.
+    --   Catches an administrator that committed to the right book but published the wrong
+    --   arithmetic.
+    nonconsuming choice VerifyNav : Bool
+      with
+        holdings : [HoldingLine]
+        verifier : Party
+      controller verifier
+      do
+        assertMsg "only the manager or a named auditor may verify"
+          (verifier == manager || Some verifier == auditor)
+        assertMsg "cannot recompute NAV with no units outstanding" (unitsOutstanding > 0.0)
+        let recomputed = portfolioValue holdings / unitsOutstanding
+        pure (recomputed == navPerUnit)
 
 -- | An investor's request to subscribe, and the manager's acceptance.
 --

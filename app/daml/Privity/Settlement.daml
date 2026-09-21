@@ -227,7 +227,6 @@ template RedemptionSettlement
 -- without an entitlement. Two concerns, two contracts.
 recordSettlementDisclosure :
   ContractId DisclosureMandate
-  -> Time
   -> Text
   -> Update (ContractId DisclosureRecord)
 recordSettlementDisclosure = discloseUnder

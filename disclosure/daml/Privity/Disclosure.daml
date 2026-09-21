@@ -87,17 +87,31 @@ template DisclosureMandate
         && legalReference /= ""
         && validWindow window
 
-    -- | Confirm the mandate covers a point in time. Non-consuming because
-    --   checking an entitlement must not spend it.
+    -- | Confirm the mandate is live *now*, where "now" is ledger time.
+    --
+    -- The @at@ field is retained and deliberately ignored. It existed in 1.0.0, where the
+    -- caller supplied the time, and that was a real hole: the party whose access is being
+    -- time-bounded could choose the timestamp, so it could backdate an expired mandate or
+    -- forward-date a future one. Validity now comes from ledger time only.
+    --
+    -- The field is not deleted because Canton enforces upgrade compatibility on choice
+    -- arguments, and removing it makes 1.1.0 an invalid upgrade of 1.0.0 with
+    -- @NOT_VALID_UPGRADE_PACKAGE: The upgraded input type of choice CheckActive on template
+    -- DisclosureMandate is missing some of its original fields@. Keeping a vestigial field
+    -- is the price of a register that can be migrated rather than orphaned, which matters
+    -- more to an institution than a tidy signature.
     nonconsuming choice CheckActive : Bool
       with
         at : Time
+          -- ^ Ignored. Retained for upgrade compatibility with 1.0.0.
       controller observer_
-      do pure (inWindow window at)
+      do
+        now <- getTime
+        pure (inWindow window now)
 
-    -- | Either side can end the mandate early. An auditor that has finished
-    --   should be able to give the access back, and a subject whose obligation
-    --   has lapsed should not need the auditor's cooperation to close it.
+    -- | Either side can end the mandate early. An auditor that has finished should be able
+    --   to give the access back, and a subject whose obligation has lapsed should not need
+    --   the auditor's cooperation to close it.
     choice Revoke : ()
       with
         actor : Party
@@ -130,27 +144,30 @@ template DisclosureRecord
     observer observer_
     ensure payloadDigest /= "" && scope /= ""
 
--- | Record a disclosure made under a mandate, after checking the mandate is
---   live at that moment. Returns the evidence contract.
+-- | Record a disclosure made under a mandate, after checking the mandate is live.
 --
--- Callers should use this rather than creating a 'DisclosureRecord' directly,
--- because this is where the entitlement is actually enforced.
+-- The time comes from ledger time, not from the caller. Letting the caller supply it would
+-- mean the party making the disclosure decides whether it was entitled to, which is not a
+-- control at all.
+--
+-- Callers should use this rather than creating a 'DisclosureRecord' directly, because this
+-- is where the entitlement is actually enforced.
 discloseUnder :
   ContractId DisclosureMandate
-  -> Time
   -> Text
   -> Update (ContractId DisclosureRecord)
-discloseUnder mandateCid at payloadDigest = do
+discloseUnder mandateCid payloadDigest = do
   m <- fetch mandateCid
-  assertMsg "the disclosure mandate is not active at this time"
-    (inWindow m.window at)
+  now <- getTime
+  assertMsg "the disclosure mandate is not active at ledger time"
+    (inWindow m.window now)
   create DisclosureRecord with
     subject = m.subject
     observer_ = m.observer_
     mandate = mandateCid
     scope = m.scope
     payloadDigest
-    disclosedAt = at
+    disclosedAt = now
 
 -- | A proposal, so a mandate can be set up without both parties being online in
 --   the same command. The subject offers; the observer accepts and the mandate

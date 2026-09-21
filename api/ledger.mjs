@@ -203,6 +203,18 @@ const step = (n, title, detail) => {
   return detail;
 };
 
+// The portfolio the NAV is struck from.
+//
+// Deliberately no digest is computed here. The ledger computes both the NAV and the
+// commitment inside Fund.AttestNav, so there is exactly one canonicalisation. An earlier
+// version hashed the book in JavaScript and it did not verify on ledger, because Daml's
+// `show` for Decimal trims trailing zeros (5000.0, not 5000.0000000000). Two
+// canonicalisations is one too many.
+const HOLDINGS = [
+  { instrument: "US912828YY01", quantity: "5000.0000000000",   unitPrice: "99.2500000000" },
+  { instrument: "DE0001102580", quantity: "3000.0000000000",   unitPrice: "101.4000000000" },
+  { instrument: "CASH-USD",     quantity: "250000.0000000000", unitPrice: "1.0000000000" },
+];
 async function main() {
   const cmd = process.argv[2] || "demo";
   const capturing = cmd === "capture";
@@ -405,26 +417,68 @@ async function main() {
   tx = await submit(
     [P.administrator],
     [
-      createCmd("Privity.Fund", "NavAttestation", {
-        fund: fundCid,
-        manager: P.manager,
-        administrator: P.administrator,
-        symbol: SYMBOL,
-        asOf: "2026-09-21T17:00:00Z",
-        navPerUnit: "102.5000000000",
+      exerciseCmd("Privity.Fund", "Fund", fundCid, "AttestNav", {
+        holdings: HOLDINGS,
         unitsOutstanding: "10000.0000000000",
-        holdingsDigest: "sha256:PLACEHOLDER-not-yet-computed-from-real-holdings",
+        asOf: "2026-09-21T17:00:00Z",
         auditor: P.auditor,
       }),
     ]
   );
-  const navCid = created(tx, "NavAttestation")[0].cid;
-  console.log("   NAV attested by administrator, visible to manager and auditor");
+  const navEvent = created(tx, "NavAttestation")[0];
+  const navCid = navEvent.cid;
+  const ledgerDigest = navEvent.args?.holdingsDigest;
+  const ledgerNav = navEvent.args?.navPerUnit;
+  console.log(`   NAV struck on ledger from the book: ${ledgerNav} per unit`);
+  console.log(`   commitment computed on ledger:      ${ledgerDigest}`);
   step(7, "NAV attested by the independent administrator", {
-    note: "The administrator signs the number and commits to the holdings it came from. The auditor can verify the NAV without the book being published. The digest is currently a placeholder rather than a computed hash, and that is stated rather than hidden.",
+    note: "The administrator submits the book and the ledger derives both the NAV per unit and a canonical sha256 commitment over the holdings. Nothing off ledger computes the digest, so there is only one canonicalisation and it cannot drift.",
     updateId: tx?.transactionTree?.updateId,
-    contracts: [{ template: "NavAttestation", cid: navCid, navPerUnit: "102.50", unitsOutstanding: "10000" }],
+    contracts: [{ template: "NavAttestation", cid: navCid, navPerUnit: ledgerNav, unitsOutstanding: "10000" }],
   });
+
+  // The auditor recomputes the commitment from a book it already holds and compares it with
+  // the attestation. A true here means the attested number is tied to that exact book, which
+  // is what makes the attestation checkable rather than merely signed.
+  const verifyTx = await submit(
+    [P.auditor],
+    [
+      exerciseCmd("Privity.Fund", "NavAttestation", navCid, "VerifyHoldings", {
+        holdings: HOLDINGS,
+        verifier: P.auditor,
+      }),
+    ]
+  );
+  const verified = Object.values(verifyTx?.transactionTree?.eventsById || {})
+    .map((e) => e.ExercisedTreeEvent?.value?.exerciseResult)
+    .find((r) => r !== undefined);
+  console.log(`   auditor recomputed the digest inside Daml: ${verified}`);
+
+  const navTx = await submit(
+    [P.auditor],
+    [
+      exerciseCmd("Privity.Fund", "NavAttestation", navCid, "VerifyNav", {
+        holdings: HOLDINGS,
+        verifier: P.auditor,
+      }),
+    ]
+  );
+  const navOk = Object.values(navTx?.transactionTree?.eventsById || {})
+    .map((e) => e.ExercisedTreeEvent?.value?.exerciseResult)
+    .find((r) => r !== undefined);
+  console.log(`   auditor recomputed NAV per unit inside Daml:  ${navOk}`);
+
+  step(8, "Auditor verifies the NAV against the book, on ledger", {
+    note: "The auditor recomputes the commitment and the NAV from a book it already holds. Both match, so the attested figure is provably tied to that portfolio without the portfolio being disclosed to anyone not entitled to it. An investor holding the same book cannot run this check at all, because entitlement is enforced in the choice.",
+    updateId: verifyTx?.transactionTree?.updateId,
+    digestVerified: verified === true,
+    navVerified: navOk === true,
+    holdingsDigest: ledgerDigest,
+  });
+  if (verified !== true || navOk !== true) {
+    console.error("\nFAIL: the digest or the NAV did not verify on ledger.");
+    process.exit(1);
+  }
 
   console.log("\n7. Privacy check, read as each party");
   const bobView = await acs(P.bob);

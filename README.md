@@ -66,6 +66,24 @@ transaction carries both authorities at once. Subscription and redemption work t
 cash reaches the fund in the same transaction the units are created, and redeemed units are
 cancelled in the same transaction the investor is paid.
 
+### Verifiable NAV
+
+A fund has to publish a number everyone relies on while the holdings behind it stay
+confidential. `Fund.AttestNav` takes the book, derives NAV per unit **and** a canonical
+sha256 commitment over the holdings, then creates the attestation. `VerifyHoldings` and
+`VerifyNav` let an entitled party recompute both from a book it already holds.
+
+The digest is computed **only on ledger, deliberately**. An earlier version hashed the book in
+JavaScript and it did not verify, because Daml renders `Decimal` with trailing zeros trimmed
+(`5000.0`, not `5000.0000000000`). Two canonicalisations is one too many: the first time they
+drift by a separator the commitment silently stops verifying. One implementation cannot
+disagree with itself.
+
+Canonical means order-independent and content-sensitive: lines are sorted before hashing, so
+the order a book happens to be listed in cannot change the result, and a single altered price
+changes it. Entitlement is enforced in the choice, so an investor holding the same book cannot
+run the check.
+
 ### Calibrated disclosure, and why the design changed
 
 The first implementation had the buyer verify the trade by reading the seller's share holding.
@@ -87,7 +105,7 @@ engineering is finding the floor between them.
 
 ## Tests
 
-`dpm test` from `tests/`. 15 scripts, 11 of 11 templates created. The two that matter are
+`dpm test` from `tests/`. 18 scripts, all passing. The two that matter are
 written to **fail if the product claim is false**, which is the only kind that counts as
 evidence rather than demonstration.
 
@@ -105,6 +123,9 @@ evidence rather than demonstration.
 | `testAuditorCannotSelfGrantMandate` | Two signatures really are required |
 | `testInvertedWindowRejected` | Malformed window refused at creation |
 | `testNavAttestation` | Administrator signs, manager and named auditor see it, non-positive NAV refused |
+| `testNavDigestIsVerifiable` | An entitled auditor recomputes the commitment from the book and it matches. One altered price breaks it. Line order does not. An investor cannot verify at all |
+| `testDigestIsOrderIndependentAndSensitive` | The digest is canonical: order-independent, content-sensitive |
+| `testCannotBackdateMandateCheck` | Ledger time is past expiry while the caller claims a date inside the window. It returns false |
 | `testDisclosureOutsideWindowFails` | Disclosure inside a mandate window records, outside is refused |
 
 ## Reproduce it
@@ -149,14 +170,24 @@ Stated here rather than left for a reader to discover.
 
 - **No UI.** Everything is exercised from Daml Script. A demo interface is in progress.
 - **No app backend.** No JSON Ledger API client yet.
-- **The NAV holdings digest is a placeholder string, not a computed hash.** The model carries
-  and checks the field, but nothing yet hashes a real portfolio into it. Until that is real,
-  verifiable NAV is a design rather than a feature, and it is not claimed as one.
 - **Tests run against the IDE ledger.** They prove the model. They do not yet prove the same
   behaviour over the real Ledger API with allocated parties.
 - **Nothing deployed beyond LocalNet.** No DevNet, no MainNet.
 - **Zero practitioner interviews.** Problem evidence is documentary and regulator-sourced. That
   moves problem validation, not market validation, and the distinction is kept explicit.
+
+## Package versions and upgrades
+
+`privity-disclosure` is at 1.1.0 and `privity` at 1.2.0, and the version numbers are not
+cosmetic. Canton treats package name plus version as an identity and **enforces upgrade
+compatibility**, so a changed model needs a bump and the bump has to be a valid upgrade.
+
+That caught a real mistake. Moving the mandate validity check from a caller-supplied timestamp
+to ledger time meant deleting the `at` field from choice `CheckActive`, and the participant
+refused the upload: `NOT_VALID_UPGRADE_PACKAGE: The upgraded input type of choice CheckActive
+on template DisclosureMandate is missing some of its original fields`. The field is therefore
+retained and explicitly ignored. A vestigial argument is the price of a register that can be
+migrated rather than orphaned, which matters more to an institution than a tidy signature.
 
 ## Licence
 

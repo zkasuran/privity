@@ -407,15 +407,19 @@ testMandateLifecycle = do
 
   mandate <- submit f.auditor do exerciseCmd offer AcceptMandate
 
-  -- Live inside the window.
-  activeNow <- submit f.auditor do
-    exerciseCmd mandate CheckActive with at = addRelTime start (days 30)
+  -- Live inside the window. Ledger time is moved rather than passed in, because the
+  -- choice no longer accepts a caller-supplied timestamp.
+  setTime (addRelTime start (days 30))
+  activeNow <- submit f.auditor do exerciseCmd mandate CheckActive with at = start
   activeNow === True
 
   -- Not live after it expires.
-  activeLater <- submit f.auditor do
-    exerciseCmd mandate CheckActive with at = addRelTime finish (days 1)
+  setTime (addRelTime finish (days 1))
+  activeLater <- submit f.auditor do exerciseCmd mandate CheckActive with at = start
   activeLater === False
+
+  -- Back inside the window for the remaining assertions.
+  setTime (addRelTime start (days 60))
 
   -- A revocation must say why.
   submitMustFail f.auditor do
@@ -427,6 +431,34 @@ testMandateLifecycle = do
 
   submit f.auditor do
     exerciseCmd mandate Revoke with actor = f.auditor, reason = "audit complete"
+
+-- | The @at@ argument on CheckActive cannot be used to cheat.
+--
+-- Ledger time is moved outside the mandate window while the caller passes an @at@ that sits
+-- comfortably inside it. In 1.0.0 that would have returned True, because the caller supplied
+-- the time. It now returns False, because validity is read from ledger time and the argument
+-- is ignored. The field survives only so the package remains a valid upgrade of 1.0.0.
+testCannotBackdateMandateCheck : Script ()
+testCannotBackdateMandateCheck = do
+  f <- setup
+  let start = time (date 2026 Jan 1) 0 0 0
+      finish = addRelTime start (days 30)
+
+  offer <- submit f.manager do
+    exerciseCmd f.fundCid OfferSupervision with
+      auditor = f.auditor
+      basis = StatutoryAudit
+      legalReference = "Engagement 2026/PRIV-I/AUD-004"
+      window = Window with from = start, until = Some finish
+  mandate <- submit f.auditor do exerciseCmd offer AcceptMandate
+
+  -- Ledger time is a year past expiry.
+  setTime (addRelTime finish (days 365))
+
+  -- The caller claims a date inside the window. It does not help.
+  claimed <- submit f.auditor do
+    exerciseCmd mandate CheckActive with at = addRelTime start (days 5)
+  claimed === False
 
 -- | An auditor cannot manufacture a mandate over an unwilling subject, because
 --   the subject is a signatory.
@@ -514,20 +546,98 @@ testDisclosureOutsideWindowFails = do
       window = Window with from = start, until = Some finish
   mandate <- submit f.auditor do exerciseCmd offer AcceptMandate
 
-  -- Inside the window: a record is produced.
+  -- Inside the window: a record is produced, stamped with ledger time.
+  setTime (addRelTime start (hours 1))
   recCid <- submit f.manager do
     createAndExerciseCmd
-      (DiscloseHelper with manager = f.manager, mandate, at = addRelTime start (hours 1), digest = "sha256:abc123")
+      (DiscloseHelper with manager = f.manager, mandate, digest = "sha256:abc123")
       RunDisclose
   Some rec <- queryContractId f.manager recCid
   rec.payloadDigest === "sha256:abc123"
   rec.observer_ === f.auditor
+  rec.disclosedAt === addRelTime start (hours 1)
 
-  -- Outside the window: refused.
+  -- Outside the window: refused. The caller cannot argue its way past this by choosing a
+  -- different timestamp, because it no longer supplies one.
+  setTime (addRelTime finish (days 2))
   submitMustFail f.manager do
     createAndExerciseCmd
-      (DiscloseHelper with manager = f.manager, mandate, at = addRelTime finish (days 2), digest = "sha256:def456")
+      (DiscloseHelper with manager = f.manager, mandate, digest = "sha256:def456")
       RunDisclose
+
+-- | The NAV digest is a real commitment, not a label.
+--
+-- This test is the one that turns "verifiable NAV" from a design claim into a feature. It
+-- proves four things: an entitled party holding the book can confirm the attestation matches
+-- it, a book with one position altered does not match, the digest is canonical so line order
+-- cannot change it, and a party with no entitlement cannot verify at all.
+testNavDigestIsVerifiable : Script ()
+testNavDigestIsVerifiable = do
+  f <- setup
+  let asOf = time (date 2026 Jan 1) 17 0 0
+      book =
+        [ HoldingLine with instrument = "US912828YY01", quantity = 5_000.0, unitPrice = 99.25
+        , HoldingLine with instrument = "DE0001102580", quantity = 3_000.0, unitPrice = 101.40
+        , HoldingLine with instrument = "CASH-USD",     quantity = 250_000.0, unitPrice = 1.0
+        ]
+      digest = holdingsDigestOf book
+      units = 10_000.0
+      nav = portfolioValue book / units
+
+  -- 5,000 x 99.25 + 3,000 x 101.40 + 250,000 x 1.00 = 1,050,450 over 10,000 units
+  nav === 105.045
+
+  navCid <- submit f.administrator do
+    createCmd NavAttestation with
+      fund = f.fundCid
+      manager = f.manager
+      administrator = f.administrator
+      symbol = f.symbol
+      asOf
+      navPerUnit = nav
+      unitsOutstanding = units
+      holdingsDigest = digest
+      auditor = Some f.auditor
+
+  -- The auditor holds the book and confirms the attestation commits to it.
+  matches <- submit f.auditor do
+    exerciseCmd navCid VerifyHoldings with holdings = book, verifier = f.auditor
+  matches === True
+
+  -- The arithmetic checks out too, so the administrator did not commit to the right book
+  -- while publishing a wrong number.
+  navOk <- submit f.auditor do
+    exerciseCmd navCid VerifyNav with holdings = book, verifier = f.auditor
+  navOk === True
+
+  -- One position altered by a single unit of price and the digest no longer matches.
+  let tampered =
+        [ HoldingLine with instrument = "US912828YY01", quantity = 5_000.0, unitPrice = 99.26
+        , HoldingLine with instrument = "DE0001102580", quantity = 3_000.0, unitPrice = 101.40
+        , HoldingLine with instrument = "CASH-USD",     quantity = 250_000.0, unitPrice = 1.0
+        ]
+  tamperedMatches <- submit f.auditor do
+    exerciseCmd navCid VerifyHoldings with holdings = tampered, verifier = f.auditor
+  tamperedMatches === False
+
+  -- The digest is canonical: the same book listed in a different order still matches.
+  let reordered = reverse book
+  reorderedMatches <- submit f.auditor do
+    exerciseCmd navCid VerifyHoldings with holdings = reordered, verifier = f.auditor
+  reorderedMatches === True
+
+  -- An investor has no entitlement to verify, even holding the correct book.
+  submitMustFail f.alice do
+    exerciseCmd navCid VerifyHoldings with holdings = book, verifier = f.alice
+
+-- | Small sanity check on the digest function itself, independent of any contract.
+testDigestIsOrderIndependentAndSensitive : Script ()
+testDigestIsOrderIndependentAndSensitive = do
+  let a = HoldingLine with instrument = "AAA", quantity = 1.0, unitPrice = 2.0
+      b = HoldingLine with instrument = "BBB", quantity = 3.0, unitPrice = 4.0
+  holdingsDigestOf [a, b] === holdingsDigestOf [b, a]
+  assertMsg "a different book must give a different digest"
+    (holdingsDigestOf [a, b] /= holdingsDigestOf [a])
 
 -- | Small helper template so a Daml Script command can call an Update function.
 --   Scripts submit commands, and 'discloseUnder' is an 'Update', so it needs a
@@ -536,10 +646,9 @@ template DiscloseHelper
   with
     manager : Party
     mandate : ContractId DisclosureMandate
-    at : Time
     digest : Text
   where
     signatory manager
     choice RunDisclose : ContractId DisclosureRecord
       controller manager
-      do discloseUnder mandate at digest
+      do discloseUnder mandate digest

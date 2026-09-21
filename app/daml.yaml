@@ -1,8 +1,8 @@
 sdk-version: 3.5.11
 name: privity
 source: daml
-version: 1.0.0
+version: 1.2.0
 dependencies:
   - daml-prim
   - daml-stdlib
-  - ../disclosure/.daml/dist/privity-disclosure-1.0.0.dar
+  - ../disclosure/.daml/dist/privity-disclosure-1.1.0.dar

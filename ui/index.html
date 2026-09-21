@@ -103,7 +103,7 @@
   <div id="err"></div>
 
   <section>
-    <h2>The three things this proves</h2>
+    <h2>The four things this proves</h2>
     <div class="grid3">
       <div class="card">
         <span class="pill ok" id="p1">checking</span>
@@ -122,6 +122,12 @@
         <h3>A failed leg settles nothing</h3>
         <p>When the buyer cannot cover the consideration the whole transaction is rejected and the parcel is
            still the seller's, undelivered. Proven by test rather than asserted.</p>
+      </div>
+      <div class="card">
+        <span class="pill ok" id="p4">checking</span>
+        <h3>The NAV is checkable, not just signed</h3>
+        <p>The ledger strikes NAV from the book and commits to it with a canonical hash. An entitled auditor
+           recomputes both from a book it already holds. Nobody else can, and nobody learns the book.</p>
       </div>
     </div>
   </section>
@@ -291,6 +297,12 @@ function renderMatrix(){
   el("p2").className = "pill " + (pass ? "ok" : "bad");
   el("p2").textContent = pass ? "verified on ledger" : "needs review";
   el("p3").textContent = "verified by test";
+  const nav = (DATA.steps||[]).find(x => x.digestVerified !== undefined);
+  if (nav) {
+    const good = nav.digestVerified && nav.navVerified;
+    el("p4").className = "pill " + (good ? "ok" : "bad");
+    el("p4").textContent = good ? "verified on ledger" : "did not verify";
+  } else { el("p4").textContent = "no data"; }
   el("meta").textContent = `Captured ${DATA.capturedAt||"?"} · package ${short(DATA.network?.packageId||"",16)} · ${(DATA.steps||[]).length} steps`;
 }
 
