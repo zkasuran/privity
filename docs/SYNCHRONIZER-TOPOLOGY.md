@@ -46,7 +46,7 @@ different synchronizers.
 
 ## How the cross-synchronizer case works, plus why the design survives
 
-Canton solves this with the reassignment protocol, and the shape of the solution matters for
+Canton solves this with the reassignment protocol. The shape of the solution matters for
 our risk story. Reassignment is a two-phase operation: unassignment on the source
 synchronizer, then assignment on the target. The documented DvP flow is:
 
@@ -75,14 +75,12 @@ operational concern.
 
 **Principal risk is not reintroduced.** This is the part that could have sunk the thesis. If
 reassignment moved value, the multi-synchronizer case would smuggle back the exact settlement
-window this project exists to remove. It does not. A contract mid-reassignment is temporarily
-unusable, and unusable is a liveness problem, not a solvency one. Ownership does not change
+window this project exists to remove. It does not. A contract mid-reassignment is temporarily unusable, which is a liveness problem rather than a solvency one. Ownership does not change
 until step 5.
 
 **A new failure mode appears: liveness.** If an assignment fails, for example on a
 topology change, the contract stays pending until resolved. So a production deployment needs
-monitoring and a resolution path for stuck assignments. That is an operational requirement
-this project has not built, and it belongs on the roadmap rather than in the claim.
+monitoring and a resolution path for stuck assignments. That is an operational requirement this project has not built. It belongs on the roadmap rather than in the claim.
 
 ## How the claim should be stated
 
@@ -104,8 +102,7 @@ POST /v2/commands/submit-and-wait-for-reassignment
 POST /v2/commands/async/submit-reassignment
 ```
 
-with `ReassignmentCommands` carrying either an `UnassignCommand` or an `AssignCommand`, and
-returning a `JsReassignment` whose required fields include `synchronizerId` and the
+with `ReassignmentCommands` carrying either an `UnassignCommand` or an `AssignCommand`, returning a `JsReassignment` whose required fields include `synchronizerId` and the
 `JsUnassignedEvent` / `JsAssignmentEvent` pair. The request schema is described by the
 participant itself as "This reassignment is executed as a single atomic update", which is
 consistent with the two-phase account: each phase is atomic, the pair is not one transaction.
