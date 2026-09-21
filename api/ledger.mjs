@@ -86,7 +86,10 @@ async function resolvePackage() {
 }
 
 // Package-name reference format. The package-id format is deprecated from 3.4.
-const tid = (mod, ent) => `#privity:${mod}:${ent}`;
+// Templates live in two packages, so the package name is derived from the module: the
+// disclosure library owns Privity.Disclosure, the app owns everything else.
+const pkgFor = (mod) => (mod === "Privity.Disclosure" ? "privity-disclosure" : "privity");
+const tid = (mod, ent) => `#${pkgFor(mod)}:${mod}:${ent}`;
 
 async function allocate(hint) {
   try {
@@ -191,8 +194,18 @@ async function acs(party) {
     .filter(Boolean);
 }
 
+// Replay capture. Every step of a verified run is recorded so the UI can show real
+// ledger data to someone who has no Docker and no participant. Nothing is synthesised:
+// each entry is the actual request made and the actual response received.
+const TRACE = { capturedAt: null, network: {}, steps: [], views: {} };
+const step = (n, title, detail) => {
+  TRACE.steps.push({ n, title, ...detail });
+  return detail;
+};
+
 async function main() {
   const cmd = process.argv[2] || "demo";
+  const capturing = cmd === "capture";
   PKG = await (async () => {
     if (process.env.PRIVITY_PACKAGE_ID) return process.env.PRIVITY_PACKAGE_ID;
     return resolvePackage();
@@ -214,6 +227,12 @@ async function main() {
 
   console.log("Allocating parties...");
   const P = await parties();
+  if (capturing) {
+    const v = await api("/v2/version");
+    TRACE.capturedAt = new Date().toISOString();
+    TRACE.network = { ledgerApiVersion: v.version, jsonApi: BASE, packageId: PKG };
+    TRACE.parties = P;
+  }
 
   const SYMBOL = "PRIV-I";
   const INSTRUMENT = "USDC";
@@ -234,6 +253,11 @@ async function main() {
   );
   const fundCid = created(tx, "Fund")[0].cid;
   console.log("   Fund", fundCid.slice(0, 24) + "...");
+  step(1, "Fund created jointly by manager and administrator", {
+    note: "Both sign. An administrator cannot be named as the party striking NAV without having agreed.",
+    updateId: tx?.transactionTree?.updateId,
+    contracts: [{ template: "Fund", cid: fundCid }],
+  });
 
   console.log("\n2. Cash issued to Bob through offer and accept");
   tx = await submit(
@@ -254,6 +278,11 @@ async function main() {
   );
   const bobCash = created(tx, "CashHolding")[0].cid;
   console.log("   Bob holds 150,000 USDC");
+  step(2, "Cash issued to the buyer through offer and accept", {
+    note: "The issuer cannot push a holding onto an unwilling recipient.",
+    updateId: tx?.transactionTree?.updateId,
+    contracts: [{ template: "CashHolding", cid: bobCash, amount: "150000", instrument: INSTRUMENT }],
+  });
 
   console.log("\n3. Alice put on the register with 1,000 units");
   tx = await submit(
@@ -270,6 +299,11 @@ async function main() {
     ]
   );
   const aliceShares = created(tx, "ShareHolding")[0].cid;
+  step(3, "Seller on the register with 1,000 units", {
+    note: "Stakeholders are manager, administrator and investor. No other investor appears.",
+    updateId: tx?.transactionTree?.updateId,
+    contracts: [{ template: "ShareHolding", cid: aliceShares, units: "1000" }],
+  });
 
   console.log("\n4. Alice earmarks exactly 400 units for Bob");
   tx = await submit(
@@ -286,6 +320,14 @@ async function main() {
   const retained = parcels.find((p) => !p.args.prospectiveBuyer);
   console.log(`   parcel  ${parcel.args.units} units, disclosed to Bob`);
   console.log(`   retained ${retained.args.units} units, not disclosed`);
+  step(4, "Seller earmarks exactly the parcel being sold", {
+    note: "This is the calibrated-disclosure step. Only the parcel becomes visible to the buyer. The retained units never do.",
+    updateId: tx?.transactionTree?.updateId,
+    contracts: [
+      { template: "ShareHolding", cid: parcel.cid, units: parcel.args.units, disclosedTo: "buyer" },
+      { template: "ShareHolding", cid: retained.cid, units: retained.args.units, disclosedTo: "seller only" },
+    ],
+  });
 
   console.log("\n5. Atomic DvP: 400 units against 41,000 USDC in ONE transaction");
   tx = await submit(
@@ -320,8 +362,71 @@ async function main() {
   const eventCount = Object.keys(tx?.transactionTree?.eventsById || {}).length;
   console.log(`   committed in one transaction: ${updateId}`);
   console.log(`   ${eventCount} events in that single transaction`);
+  step(5, "Atomic delivery versus payment, one transaction", {
+    note: "The share leg needs the seller's authority and the cash leg needs the buyer's. The proposal is signed by the seller and exercised by the buyer, so one transaction carries both. It commits whole or not at all.",
+    updateId,
+    eventCount,
+    events: Object.values(tx?.transactionTree?.eventsById || {}).map((e) => {
+      const c = e.CreatedTreeEvent?.value;
+      const x = e.ExercisedTreeEvent?.value;
+      if (c) return { kind: "created", template: (c.templateId || "").split(":").slice(-1)[0], cid: c.contractId };
+      if (x) return { kind: "exercised", template: (x.templateId || "").split(":").slice(-1)[0], choice: x.choice, cid: x.contractId };
+      return { kind: "other" };
+    }),
+  });
 
-  console.log("\n6. Privacy check, read as each party");
+  console.log("\n6. Supervision: mandate offered, accepted, then NAV attested");
+  tx = await submit(
+    [P.manager],
+    [
+      exerciseCmd("Privity.Fund", "Fund", fundCid, "OfferSupervision", {
+        auditor: P.auditor,
+        basis: "StatutoryAudit",
+        legalReference: "Engagement 2026/PRIV-I/AUD-004",
+        window: { from: "2026-01-01T00:00:00Z", until: "2027-01-01T00:00:00Z" },
+      }),
+    ]
+  );
+  const mandateOffer = created(tx, "DisclosureMandateOffer")[0].cid;
+  tx = await submit(
+    [P.auditor],
+    [
+      exerciseCmd("Privity.Disclosure", "DisclosureMandateOffer", mandateOffer, "AcceptMandate", {}),
+    ]
+  );
+  const mandateCid = created(tx, "DisclosureMandate")[0].cid;
+  console.log("   mandate accepted by auditor, time bounded and revocable");
+  step(6, "Supervision mandate: offered by the fund, accepted by the auditor", {
+    note: "Both sides sign. An auditor cannot self-grant visibility and a firm cannot fake having been audited. The mandate is time bounded and either side can revoke it with a stated reason.",
+    updateId: tx?.transactionTree?.updateId,
+    contracts: [{ template: "DisclosureMandate", cid: mandateCid, basis: "StatutoryAudit" }],
+  });
+
+  tx = await submit(
+    [P.administrator],
+    [
+      createCmd("Privity.Fund", "NavAttestation", {
+        fund: fundCid,
+        manager: P.manager,
+        administrator: P.administrator,
+        symbol: SYMBOL,
+        asOf: "2026-09-21T17:00:00Z",
+        navPerUnit: "102.5000000000",
+        unitsOutstanding: "10000.0000000000",
+        holdingsDigest: "sha256:PLACEHOLDER-not-yet-computed-from-real-holdings",
+        auditor: P.auditor,
+      }),
+    ]
+  );
+  const navCid = created(tx, "NavAttestation")[0].cid;
+  console.log("   NAV attested by administrator, visible to manager and auditor");
+  step(7, "NAV attested by the independent administrator", {
+    note: "The administrator signs the number and commits to the holdings it came from. The auditor can verify the NAV without the book being published. The digest is currently a placeholder rather than a computed hash, and that is stated rather than hidden.",
+    updateId: tx?.transactionTree?.updateId,
+    contracts: [{ template: "NavAttestation", cid: navCid, navPerUnit: "102.50", unitsOutstanding: "10000" }],
+  });
+
+  console.log("\n7. Privacy check, read as each party");
   const bobView = await acs(P.bob);
   const aliceView = await acs(P.alice);
   const bobSeesRetained = bobView.some((c) => c.cid === retained.cid);
@@ -333,6 +438,39 @@ async function main() {
     process.exit(1);
   }
   console.log("\n   PASS: buyer cannot read the seller's retained position.");
+
+  if (capturing) {
+    // The active contract set accumulates across runs on a long-lived LocalNet, so the
+    // captured views are scoped to contracts this run actually produced. Both the scoped
+    // and total counts are recorded, so the number shown is never quietly a subset.
+    const thisRun = new Set();
+    for (const st of TRACE.steps) {
+      for (const c of st.contracts || []) thisRun.add(c.cid);
+      for (const e of st.events || []) if (e.cid) thisRun.add(e.cid);
+    }
+    const scope = (all) => ({
+      fromThisRun: all.filter((c) => thisRun.has(c.cid)),
+      totalVisible: all.length,
+    });
+    const adminView = await acs(P.administrator);
+    const auditorView = await acs(P.auditor);
+    TRACE.views = {
+      seller: { party: P.alice, ...scope(aliceView) },
+      buyer: { party: P.bob, ...scope(bobView) },
+      administrator: { party: P.administrator, ...scope(adminView) },
+      auditor: { party: P.auditor, ...scope(auditorView) },
+    };
+    TRACE.privacyCheck = {
+      retainedParcelCid: retained.cid,
+      sellerCanSeeRetained: aliceSeesRetained,
+      buyerCanSeeRetained: bobSeesRetained,
+      verdict: !bobSeesRetained && aliceSeesRetained ? "PASS" : "FAIL",
+    };
+    const { writeFileSync, mkdirSync } = await import("node:fs");
+    mkdirSync("ui", { recursive: true });
+    writeFileSync("ui/replay.json", JSON.stringify(TRACE, null, 1));
+    console.log(`\n   captured verified run -> ui/replay.json (${TRACE.steps.length} steps)`);
+  }
 }
 
 main().catch((e) => {

@@ -1,0 +1,310 @@
+{
+ "capturedAt": "2026-09-21T07:46:48.441Z",
+ "network": {
+  "ledgerApiVersion": "3.5.17",
+  "jsonApi": "http://localhost:32787",
+  "packageId": "f1a6cd6b262effbb6603192324bfb6c31d375aa57b1818f801136897d2aedf19"
+ },
+ "steps": [
+  {
+   "n": 1,
+   "title": "Fund created jointly by manager and administrator",
+   "note": "Both sign. An administrator cannot be named as the party striking NAV without having agreed.",
+   "updateId": "1220eacef8fd8ff37fc8924438b2afa9a61409756d073f775dba8c2dc69c1155135a",
+   "contracts": [
+    {
+     "template": "Fund",
+     "cid": "007231c23eeb7d10678c74305c1be2f783d317c600e0dc52cb34f251f129fe6f97ca12122084531515f2b827e606182f538c69ee71043219e5e0d892a0a8b61dc249c6656b"
+    }
+   ]
+  },
+  {
+   "n": 2,
+   "title": "Cash issued to the buyer through offer and accept",
+   "note": "The issuer cannot push a holding onto an unwilling recipient.",
+   "updateId": "1220017a06bd3c552d41c62bc47773dab98f1df394875ab9f6b038e9abea59beb133",
+   "contracts": [
+    {
+     "template": "CashHolding",
+     "cid": "0095efcdad1becceed85b80b0b4adfc0b57abbe4b9c69a81e581c9774e52617033ca1212204710fbe8d08c300678fefe6f487080d2b94dcd55786da999d493f9ed34c5ca50",
+     "amount": "150000",
+     "instrument": "USDC"
+    }
+   ]
+  },
+  {
+   "n": 3,
+   "title": "Seller on the register with 1,000 units",
+   "note": "Stakeholders are manager, administrator and investor. No other investor appears.",
+   "updateId": "12201cacfd21061fa2d6fd47b509e2005454cc0798a0fb16aece2235ce00cf62df99",
+   "contracts": [
+    {
+     "template": "ShareHolding",
+     "cid": "009e458f2a33a6a7f4371afdb48bfdcd51d52644494d66c7a0ffa26598cdb2b2a7ca1212205ad59ec2b403018ba2e90674d63d094eaa34421f396f0975dfe539be9b767d88",
+     "units": "1000"
+    }
+   ]
+  },
+  {
+   "n": 4,
+   "title": "Seller earmarks exactly the parcel being sold",
+   "note": "This is the calibrated-disclosure step. Only the parcel becomes visible to the buyer. The retained units never do.",
+   "updateId": "1220cfeda2535f3688bc155202e28ab37ce13d4faea9a7b9e4902c2ca116db893f30",
+   "contracts": [
+    {
+     "template": "ShareHolding",
+     "cid": "006190c4210551e2acb751845bdab0e4229e5e4747d8953edd3000e8bcc05a2589ca1212208adca77eeba67e51acd4e8d74865692e4fc342e6435c37d719e0371365845a09",
+     "units": "400.0000000000",
+     "disclosedTo": "buyer"
+    },
+    {
+     "template": "ShareHolding",
+     "cid": "00ebc76e7088dc87d708b96054e55242402296c73e6ce6f78e728dbdaf3be32cf9ca121220d265e80e9a9466d880cfaff662c815eac772246d0afe5cac2f3bc547cf7305ea",
+     "units": "600.0000000000",
+     "disclosedTo": "seller only"
+    }
+   ]
+  },
+  {
+   "n": 5,
+   "title": "Atomic delivery versus payment, one transaction",
+   "note": "The share leg needs the seller's authority and the cash leg needs the buyer's. The proposal is signed by the seller and exercised by the buyer, so one transaction carries both. It commits whole or not at all.",
+   "updateId": "1220e5ad572f550791a52602e2dfb8c2522bcccb090b0fe52aee57cd74e694204d8c",
+   "eventCount": 8,
+   "events": [
+    {
+     "kind": "exercised",
+     "template": "DvpProposal",
+     "choice": "SettleDvP",
+     "cid": "00cea077880956efe0bf0f1e7a7086983ae49089032fb911daa3f12dfbacf76575ca121220b4a3d05f988c0202e52c251d854c6a0e89528f8fb7af1a0cde99efa9cfe04eec"
+    },
+    {
+     "kind": "exercised",
+     "template": "ShareHolding",
+     "choice": "TransferShares",
+     "cid": "006190c4210551e2acb751845bdab0e4229e5e4747d8953edd3000e8bcc05a2589ca1212208adca77eeba67e51acd4e8d74865692e4fc342e6435c37d719e0371365845a09"
+    },
+    {
+     "kind": "created",
+     "template": "ShareHolding",
+     "cid": "003ba2a82a388ca54e82ee195fa752c6d1d4b70baf5d59fbb16444e6d9ccde6049ca121220bca7ace5adafea56b7d95d28c3872e870142a0c2451c2b89478ae8a67885bc27"
+    },
+    {
+     "kind": "exercised",
+     "template": "CashHolding",
+     "choice": "SplitCash",
+     "cid": "0095efcdad1becceed85b80b0b4adfc0b57abbe4b9c69a81e581c9774e52617033ca1212204710fbe8d08c300678fefe6f487080d2b94dcd55786da999d493f9ed34c5ca50"
+    },
+    {
+     "kind": "created",
+     "template": "CashHolding",
+     "cid": "0006803757bf90d5c739f74b43ead794b458be5977b91cb117f95c0200317b47e3ca121220d585271d0089d5396c86ec63f829ac0d83e681b05394e1ddda03f5417d670e9e"
+    },
+    {
+     "kind": "created",
+     "template": "CashHolding",
+     "cid": "00236957b8ec051fef69425b7412f58df4799fe02b18c96152156ed78334ea2821ca1212206ad41aaac6af19c38062db7c928d9874fd8a90739e26d837f069a12818fa632c"
+    },
+    {
+     "kind": "exercised",
+     "template": "CashHolding",
+     "choice": "TransferCash",
+     "cid": "0006803757bf90d5c739f74b43ead794b458be5977b91cb117f95c0200317b47e3ca121220d585271d0089d5396c86ec63f829ac0d83e681b05394e1ddda03f5417d670e9e"
+    },
+    {
+     "kind": "created",
+     "template": "CashHolding",
+     "cid": "00bebcdbdb5b6cb86de3425f38bb79eed889c1c4269001c617536c24e37d157d46ca1212202c3777ad64f856a4ca111b117352f15396107c6dceec509074b778f3fbe385ee"
+    }
+   ]
+  },
+  {
+   "n": 6,
+   "title": "Supervision mandate: offered by the fund, accepted by the auditor",
+   "note": "Both sides sign. An auditor cannot self-grant visibility and a firm cannot fake having been audited. The mandate is time bounded and either side can revoke it with a stated reason.",
+   "updateId": "1220167221e5681e6e25f103afb45cdc35a24861db7de245e89519754e8cacc1af2b",
+   "contracts": [
+    {
+     "template": "DisclosureMandate",
+     "cid": "00043255f8907950a29a97286282268657b958a151a04db8900d913c94197c3b9dca1212205cd5e1a9e76e20aaac0cde949052b23820d20cccfad55a3390d81ad92c96630b",
+     "basis": "StatutoryAudit"
+    }
+   ]
+  },
+  {
+   "n": 7,
+   "title": "NAV attested by the independent administrator",
+   "note": "The administrator signs the number and commits to the holdings it came from. The auditor can verify the NAV without the book being published. The digest is currently a placeholder rather than a computed hash, and that is stated rather than hidden.",
+   "updateId": "12208ef5e2acd8a52ee04ef1ec29c507c05ecc69be22a908fdd976d4eb2c308d07db",
+   "contracts": [
+    {
+     "template": "NavAttestation",
+     "cid": "00a2a8a43df14627f076a88627930c4a29612124928fa67a50e3234cf3093815d7ca121220686cfc17d0729494c7682a5dc2fc29022b3164be4118d5418bb554dff3d5886d",
+     "navPerUnit": "102.50",
+     "unitsOutstanding": "10000"
+    }
+   ]
+  }
+ ],
+ "views": {
+  "seller": {
+   "party": "alice-pension::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+   "fromThisRun": [
+    {
+     "cid": "00ebc76e7088dc87d708b96054e55242402296c73e6ce6f78e728dbdaf3be32cf9ca121220d265e80e9a9466d880cfaff662c815eac772246d0afe5cac2f3bc547cf7305ea",
+     "template": "Privity.Fund:ShareHolding",
+     "args": {
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "investor": "alice-pension::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "units": "600.0000000000"
+     }
+    },
+    {
+     "cid": "00bebcdbdb5b6cb86de3425f38bb79eed889c1c4269001c617536c24e37d157d46ca1212202c3777ad64f856a4ca111b117352f15396107c6dceec509074b778f3fbe385ee",
+     "template": "Privity.Cash:CashHolding",
+     "args": {
+      "issuer": "brale-issuer::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "owner": "alice-pension::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "instrument": "USDC",
+      "amount": "41000.0000000000"
+     }
+    }
+   ],
+   "totalVisible": 10
+  },
+  "buyer": {
+   "party": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+   "fromThisRun": [
+    {
+     "cid": "003ba2a82a388ca54e82ee195fa752c6d1d4b70baf5d59fbb16444e6d9ccde6049ca121220bca7ace5adafea56b7d95d28c3872e870142a0c2451c2b89478ae8a67885bc27",
+     "template": "Privity.Fund:ShareHolding",
+     "args": {
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "investor": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "units": "400.0000000000"
+     }
+    },
+    {
+     "cid": "00236957b8ec051fef69425b7412f58df4799fe02b18c96152156ed78334ea2821ca1212206ad41aaac6af19c38062db7c928d9874fd8a90739e26d837f069a12818fa632c",
+     "template": "Privity.Cash:CashHolding",
+     "args": {
+      "issuer": "brale-issuer::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "owner": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "instrument": "USDC",
+      "amount": "109000.0000000000"
+     }
+    }
+   ],
+   "totalVisible": 10
+  },
+  "administrator": {
+   "party": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+   "fromThisRun": [
+    {
+     "cid": "007231c23eeb7d10678c74305c1be2f783d317c600e0dc52cb34f251f129fe6f97ca12122084531515f2b827e606182f538c69ee71043219e5e0d892a0a8b61dc249c6656b",
+     "template": "Privity.Fund:Fund",
+     "args": {
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "cashIssuer": "brale-issuer::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "name": "Privity Institutional Fund I",
+      "instrument": "USDC"
+     }
+    },
+    {
+     "cid": "00ebc76e7088dc87d708b96054e55242402296c73e6ce6f78e728dbdaf3be32cf9ca121220d265e80e9a9466d880cfaff662c815eac772246d0afe5cac2f3bc547cf7305ea",
+     "template": "Privity.Fund:ShareHolding",
+     "args": {
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "investor": "alice-pension::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "units": "600.0000000000"
+     }
+    },
+    {
+     "cid": "003ba2a82a388ca54e82ee195fa752c6d1d4b70baf5d59fbb16444e6d9ccde6049ca121220bca7ace5adafea56b7d95d28c3872e870142a0c2451c2b89478ae8a67885bc27",
+     "template": "Privity.Fund:ShareHolding",
+     "args": {
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "investor": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "units": "400.0000000000"
+     }
+    },
+    {
+     "cid": "00a2a8a43df14627f076a88627930c4a29612124928fa67a50e3234cf3093815d7ca121220686cfc17d0729494c7682a5dc2fc29022b3164be4118d5418bb554dff3d5886d",
+     "template": "Privity.Fund:NavAttestation",
+     "args": {
+      "fund": "007231c23eeb7d10678c74305c1be2f783d317c600e0dc52cb34f251f129fe6f97ca12122084531515f2b827e606182f538c69ee71043219e5e0d892a0a8b61dc249c6656b",
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "asOf": "2026-09-21T17:00:00Z",
+      "navPerUnit": "102.5000000000",
+      "unitsOutstanding": "10000.0000000000",
+      "holdingsDigest": "sha256:PLACEHOLDER-not-yet-computed-from-real-holdings",
+      "auditor": "supervisor-auditor::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05"
+     }
+    }
+   ],
+   "totalVisible": 17
+  },
+  "auditor": {
+   "party": "supervisor-auditor::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+   "fromThisRun": [
+    {
+     "cid": "00043255f8907950a29a97286282268657b958a151a04db8900d913c94197c3b9dca1212205cd5e1a9e76e20aaac0cde949052b23820d20cccfad55a3390d81ad92c96630b",
+     "template": "Privity.Disclosure:DisclosureMandate",
+     "args": {
+      "subject": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "observer_": "supervisor-auditor::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "scope": "PRIV-I share register and NAV",
+      "basis": "StatutoryAudit",
+      "legalReference": "Engagement 2026/PRIV-I/AUD-004",
+      "window": {
+       "from": "2026-01-01T00:00:00Z",
+       "until": "2027-01-01T00:00:00Z"
+      }
+     }
+    },
+    {
+     "cid": "00a2a8a43df14627f076a88627930c4a29612124928fa67a50e3234cf3093815d7ca121220686cfc17d0729494c7682a5dc2fc29022b3164be4118d5418bb554dff3d5886d",
+     "template": "Privity.Fund:NavAttestation",
+     "args": {
+      "fund": "007231c23eeb7d10678c74305c1be2f783d317c600e0dc52cb34f251f129fe6f97ca12122084531515f2b827e606182f538c69ee71043219e5e0d892a0a8b61dc249c6656b",
+      "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+      "symbol": "PRIV-I",
+      "asOf": "2026-09-21T17:00:00Z",
+      "navPerUnit": "102.5000000000",
+      "unitsOutstanding": "10000.0000000000",
+      "holdingsDigest": "sha256:PLACEHOLDER-not-yet-computed-from-real-holdings",
+      "auditor": "supervisor-auditor::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05"
+     }
+    }
+   ],
+   "totalVisible": 5
+  }
+ },
+ "parties": {
+  "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+  "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+  "cashIssuer": "brale-issuer::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+  "auditor": "supervisor-auditor::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+  "alice": "alice-pension::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
+  "bob": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05"
+ },
+ "privacyCheck": {
+  "retainedParcelCid": "00ebc76e7088dc87d708b96054e55242402296c73e6ce6f78e728dbdaf3be32cf9ca121220d265e80e9a9466d880cfaff662c815eac772246d0afe5cac2f3bc547cf7305ea",
+  "sellerCanSeeRetained": true,
+  "buyerCanSeeRetained": false,
+  "verdict": "PASS"
+ }
+}

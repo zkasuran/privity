@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privity — atomic settlement and need-to-know disclosure on Canton</title>
+<meta name="description" content="Both legs of a tokenized fund trade settle in one Canton transaction, and each counterparty sees only the parcel it is buying.">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#12151d; --panel2:#171b25; --line:#232834;
+    --ink:#e8ecf4; --mut:#8e98ab; --dim:#5c667a;
+    --acc:#4c7dff; --ok:#1fbf75; --warn:#e0a330; --bad:#e2574c; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background-image:radial-gradient(900px 500px at 15% -10%,rgba(76,125,255,.10),transparent),
+                     radial-gradient(700px 400px at 95% 0%,rgba(31,191,117,.07),transparent);}
+  a{color:var(--acc)}
+  main{max-width:1120px;margin:0 auto;padding:28px 20px 90px}
+  header{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+  h1{font-size:30px;margin:0;letter-spacing:-.025em}
+  h1 .dot{color:var(--acc)}
+  .tag{font:12px var(--mono);color:var(--mut);text-transform:uppercase;letter-spacing:.09em}
+  .claim{font-size:18px;color:var(--ink);margin:10px 0 4px;max-width:78ch}
+  .sub{color:var(--mut);max-width:80ch;margin:0 0 22px}
+  .modebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button.mode{background:var(--panel2);color:var(--mut);border:1px solid var(--line);
+    border-radius:8px;padding:7px 13px;font:600 13px inherit;cursor:pointer}
+  button.mode[aria-pressed="true"]{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .banner{border-radius:10px;padding:11px 14px;margin:0 0 22px;font-size:13.5px;
+    border:1px solid #3a3320;background:#221d10;color:#e8d9b0}
+  .banner.live{border-color:#14432f;background:#0d2419;color:#b6e8cf}
+  .banner b{color:#fff}
+  section{margin:30px 0}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);
+    margin:0 0 12px;font-weight:700}
+  .grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px}
+  .card h3{margin:0 0 7px;font-size:15px}
+  .card p{margin:0;color:var(--mut);font-size:13.5px}
+  .pill{display:inline-block;font:11px var(--mono);padding:2px 8px;border-radius:20px;
+    border:1px solid var(--line);color:var(--mut);margin-bottom:9px}
+  .pill.ok{color:var(--ok);border-color:#14432f;background:#0d2419}
+  .pill.bad{color:var(--bad);border-color:#43201d;background:#241110}
+  ol.tl{list-style:none;margin:0;padding:0}
+  ol.tl li{position:relative;padding:0 0 16px 34px;border-left:1px solid var(--line);margin-left:11px}
+  ol.tl li:last-child{border-left-color:transparent}
+  ol.tl .num{position:absolute;left:-12px;top:0;width:23px;height:23px;border-radius:50%;
+    background:var(--panel2);border:1px solid var(--line);color:var(--mut);
+    font:600 12px var(--mono);display:flex;align-items:center;justify-content:center}
+  ol.tl li.key .num{background:var(--acc);border-color:var(--acc);color:#fff}
+  ol.tl h4{margin:1px 0 4px;font-size:14.5px}
+  ol.tl .note{color:var(--mut);font-size:13px;margin:0 0 6px;max-width:82ch}
+  .uid{font:11px var(--mono);color:var(--dim);word-break:break-all}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em}
+  td.mono,.mono{font-family:var(--mono);font-size:12px}
+  .yes{color:var(--ok);font-weight:700}
+  .no{color:var(--bad);font-weight:700}
+  .evt{display:grid;grid-template-columns:96px 1fr;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .evt:last-child{border-bottom:0}
+  .evt .k{font:11px var(--mono);text-transform:uppercase;letter-spacing:.06em}
+  .evt .k.created{color:var(--ok)}
+  .evt .k.exercised{color:var(--acc)}
+  .onetx{border:1px solid #1d3a6b;background:#0e1626;border-radius:12px;padding:15px}
+  .onetx .hd{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline;margin-bottom:9px}
+  .big{font:700 26px/1 inherit}
+  .kv{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+  .kv span{font:11px var(--mono);background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:3px 8px;color:var(--mut)}
+  pre{background:#0a0c11;border:1px solid var(--line);border-radius:9px;padding:12px;
+    overflow:auto;font:12.5px/1.55 var(--mono);color:#cdd6e6;margin:0}
+  footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);color:var(--mut);font-size:13px}
+  .honest{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);
+    border-radius:9px;padding:13px 15px;font-size:13.5px;color:var(--mut);margin:14px 0}
+  .honest b{color:var(--ink)}
+  #err{display:none;border:1px solid #43201d;background:#241110;color:#f0b3ad;
+    border-radius:9px;padding:12px 14px;font-size:13.5px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="tag">HackCanton S3 &middot; Investment Infrastructure</div>
+      <h1>Privity<span class="dot">.</span></h1>
+    </div>
+    <div class="modebar">
+      <button class="mode" id="mReplay" aria-pressed="true">Replay</button>
+      <button class="mode" id="mLive" aria-pressed="false">Live</button>
+    </div>
+  </header>
+
+  <p class="claim">Both legs of a tokenized fund trade settle in <b>one Canton transaction</b>, and each
+     counterparty sees only the parcel it is buying.</p>
+  <p class="sub">Delivery versus payment removes the window where one leg has moved and the other has not.
+     Doing it on a broadcast ledger would publish every investor's position to every other investor, which a
+     regulated fund cannot accept. Canton is where both properties hold at once.</p>
+
+  <div id="banner" class="banner"></div>
+  <div id="err"></div>
+
+  <section>
+    <h2>The three things this proves</h2>
+    <div class="grid3">
+      <div class="card">
+        <span class="pill ok" id="p1">checking</span>
+        <h3>Settlement is atomic</h3>
+        <p>The share leg needs the seller's authority. The cash leg needs the buyer's. One transaction carries
+           both, so it commits whole or not at all.</p>
+      </div>
+      <div class="card">
+        <span class="pill ok" id="p2">checking</span>
+        <h3>Disclosure is calibrated, not maximal</h3>
+        <p>The buyer must verify what it is paying for, so it has to read something. It reads exactly one
+           parcel. The seller's retained position is never disclosed.</p>
+      </div>
+      <div class="card">
+        <span class="pill ok" id="p3">checking</span>
+        <h3>A failed leg settles nothing</h3>
+        <p>When the buyer cannot cover the consideration the whole transaction is rejected and the parcel is
+           still the seller's, undelivered. Proven by test rather than asserted.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The settlement, as it happened</h2>
+    <ol class="tl" id="timeline"></ol>
+  </section>
+
+  <section>
+    <h2>The atomic transaction</h2>
+    <div class="onetx">
+      <div class="hd">
+        <div><span class="big" id="evcount">0</span> <span class="mono" style="color:var(--mut)">events</span>
+             <span style="color:var(--mut)"> in a single committed transaction</span></div>
+        <div class="mono" id="txid" style="color:var(--dim)"></div>
+      </div>
+      <div id="events"></div>
+      <div class="kv">
+        <span>delivery leg: TransferShares</span>
+        <span>payment leg: SplitCash then TransferCash</span>
+        <span>one commit</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Who can see what, read back from the ledger</h2>
+    <p class="sub">Each row is an active contract query issued <i>as that party</i>. This is not a diagram of
+       intended permissions, it is what the ledger returned.</p>
+    <table id="matrix"><thead><tr>
+      <th>Party</th><th>Role</th><th>Contracts visible from this run</th><th>Sees seller's retained units?</th>
+    </tr></thead><tbody></tbody></table>
+    <div class="honest" id="verdict"></div>
+  </section>
+
+  <section>
+    <h2>Run it yourself</h2>
+    <pre id="repro">canton-devkit localnet up privity
+dpm build --all
+cd tests &amp;&amp; dpm test          # 15 tests
+canton-devkit localnet dar upload disclosure/.daml/dist/privity-disclosure-1.0.0.dar --instance privity
+canton-devkit localnet dar upload app/.daml/dist/privity-1.0.0.dar --instance privity
+eval "$(canton-devkit localnet env privity)"
+node api/ledger.mjs demo        # the flow above, against your own participant</pre>
+  </section>
+
+  <div class="honest">
+    <b>What is real and what is not.</b> Every number, contract id and transaction id on this page came out of
+    a real Canton participant. Nothing is mocked and no output is retyped. Two things are honestly incomplete:
+    the NAV holdings digest is a placeholder string rather than a hash computed over real holdings, so
+    verifiable NAV is a design and not yet a feature, and the auditor is entitled to the mandate and the
+    attestation rather than to individual positions, which is the intended need-to-know posture rather than a
+    limitation. Replay mode shows a recorded verified run so a reader with no Docker can still see genuine
+    ledger data. Live mode talks to a participant on your own machine.
+  </div>
+
+  <footer>
+    <div>Privity &middot; source-available, no derivatives &middot; the disclosure package is intended for
+         Apache-2.0 release after the competition.</div>
+    <div style="margin-top:6px" id="meta"></div>
+  </footer>
+</main>
+
+<script>
+const LIVE_DEFAULT = "http://localhost:32787";
+let DATA = null, MODE = "replay";
+
+const el = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const short = (s, n = 18) => !s ? "" : (s.length > n ? s.slice(0, n) + "\u2026" : s);
+
+function setBanner(){
+  const b = el("banner");
+  if (MODE === "replay"){
+    const when = DATA?.capturedAt ? new Date(DATA.capturedAt).toUTCString() : "unknown time";
+    b.className = "banner";
+    b.innerHTML = `<b>Replay of a verified run.</b> Recorded from a real Canton participant on
+      ${esc(when)}. Ledger API ${esc(DATA?.network?.ledgerApiVersion || "?")}. This is genuine ledger
+      output, replayed so it can be read without running anything. It is not a live connection.`;
+  } else {
+    b.className = "banner live";
+    b.innerHTML = `<b>Live mode.</b> Reading a Canton participant at
+      <span class="mono">${esc(LIVE_DEFAULT)}</span> on this machine. If nothing loads, start LocalNet and
+      re-run the capture.`;
+  }
+}
+
+function renderTimeline(){
+  const key = new Set([4,5]);
+  el("timeline").innerHTML = (DATA.steps||[]).map(s => `
+    <li class="${key.has(s.n) ? "key" : ""}">
+      <div class="num">${s.n}</div>
+      <h4>${esc(s.title)}</h4>
+      <p class="note">${esc(s.note||"")}</p>
+      ${s.contracts?.length ? `<div class="kv">${s.contracts.map(c =>
+        `<span>${esc(c.template)}${c.units ? " &middot; " + esc(c.units) + " units" : ""}${
+          c.amount ? " &middot; " + esc(c.amount) + " " + esc(c.instrument||"") : ""}${
+          c.disclosedTo ? " &middot; visible to " + esc(c.disclosedTo) : ""}</span>`).join("")}</div>` : ""}
+      ${s.updateId ? `<div class="uid">updateId ${esc(s.updateId)}</div>` : ""}
+    </li>`).join("");
+}
+
+function renderAtomic(){
+  const s = (DATA.steps||[]).find(x => x.eventCount) || {};
+  el("evcount").textContent = s.eventCount || 0;
+  el("txid").textContent = short(s.updateId || "", 40);
+  el("events").innerHTML = (s.events||[]).map(e => `
+    <div class="evt">
+      <div class="k ${esc(e.kind)}">${esc(e.kind)}</div>
+      <div><b>${esc(e.template)}</b>${e.choice ? ` <span class="mono" style="color:var(--acc)">${esc(e.choice)}</span>` : ""}
+        <div class="uid">${esc(short(e.cid, 46))}</div></div>
+    </div>`).join("");
+}
+
+function renderMatrix(){
+  // Expected visibility is per role, not "only the seller". The administrator is a
+  // stakeholder on the register on purpose, because it cannot strike NAV without seeing
+  // holdings. The auditor is deliberately entitled to the mandate and the attestation
+  // rather than to individual positions. The buyer is the one that must never see the
+  // seller's retained units, and that is the claim under test.
+  const roles = {
+    seller:        {label:"Seller (investor)",  note:"Sells a 400 unit parcel out of 1,000 held",
+                    expect:true,  why:"they are her own units"},
+    buyer:         {label:"Buyer (investor)",   note:"Buys the 400 unit parcel",
+                    expect:false, why:"this is the claim under test"},
+    administrator: {label:"Fund administrator", note:"Strikes NAV, so must see the register",
+                    expect:true,  why:"stakeholder by design, cannot compute NAV otherwise"},
+    auditor:       {label:"Auditor",            note:"Entitled under a signed, time bounded mandate",
+                    expect:false, why:"entitled to the mandate and NAV, not to positions"},
+  };
+  const retained = DATA.privacyCheck?.retainedParcelCid;
+  const tb = document.querySelector("#matrix tbody");
+  let deviations = 0;
+  tb.innerHTML = Object.entries(DATA.views||{}).map(([k,v]) => {
+    const r = roles[k] || {label:k, note:"", expect:false, why:""};
+    const seen = (v.fromThisRun||[]).some(c => c.cid === retained);
+    const asExpected = seen === r.expect;
+    if (!asExpected) deviations++;
+    const templates = (v.fromThisRun||[]).map(c => c.template.split(":").pop());
+    const verdict = asExpected
+      ? (seen ? `yes, as designed` : `no, as required`)
+      : (seen ? `YES &mdash; UNEXPECTED` : `no &mdash; UNEXPECTED`);
+    return `<tr>
+      <td><b>${esc(r.label)}</b><div class="uid">${esc(short(v.party,34))}</div></td>
+      <td style="color:var(--mut)">${esc(r.note)}</td>
+      <td class="mono">${templates.length ? esc(templates.join(", ")) : "none"}
+          <div class="uid">${v.fromThisRun.length} of ${v.totalVisible} visible to this party</div></td>
+      <td class="${asExpected ? "yes" : "no"}">${verdict}
+          <div class="uid" style="font-weight:400">${esc(r.why)}</div></td>
+    </tr>`;
+  }).join("");
+
+  const pc = DATA.privacyCheck || {};
+  const pass = pc.verdict === "PASS" && deviations === 0;
+  el("verdict").innerHTML = `<b>${pass ? "PASS." : "ATTENTION."}</b> The buyer
+    ${pc.buyerCanSeeRetained ? "CAN" : "cannot"} read the seller's retained units, and the seller
+    ${pc.sellerCanSeeRetained ? "can" : "cannot"}. ${deviations === 0
+      ? "Every party's visibility matched what the model intends."
+      : deviations + " party did not match the expected visibility, which needs investigating."}
+    Checked against contract <span class="mono">${esc(short(pc.retainedParcelCid,30))}</span> by querying the
+    active contract set as each party. The Daml test
+    <span class="mono">testBuyerCannotSeeSellersRemainingPosition</span> fails the build if the buyer ever
+    gains that visibility.`;
+
+  el("p1").textContent = (DATA.steps||[]).some(s=>s.eventCount) ? "verified on ledger" : "no data";
+  el("p2").className = "pill " + (pass ? "ok" : "bad");
+  el("p2").textContent = pass ? "verified on ledger" : "needs review";
+  el("p3").textContent = "verified by test";
+  el("meta").textContent = `Captured ${DATA.capturedAt||"?"} · package ${short(DATA.network?.packageId||"",16)} · ${(DATA.steps||[]).length} steps`;
+}
+
+function renderAll(){ setBanner(); renderTimeline(); renderAtomic(); renderMatrix(); }
+
+async function loadReplay(){
+  const r = await fetch("replay.json", {cache:"no-store"});
+  if (!r.ok) throw new Error("replay.json not found (" + r.status + ")");
+  DATA = await r.json(); MODE = "replay"; renderAll();
+}
+
+async function loadLive(){
+  // Live mode does not re-run the trade. It reads the participant to confirm it is
+  // reachable, then shows the same captured structure so the page cannot imply that a
+  // settlement happened when none did. Re-run `node api/ledger.mjs capture` to refresh.
+  const r = await fetch(LIVE_DEFAULT + "/v2/version");
+  if (!r.ok) throw new Error("participant not reachable at " + LIVE_DEFAULT);
+  const v = await r.json();
+  MODE = "live";
+  DATA.network = Object.assign({}, DATA.network, {ledgerApiVersion: v.version, live:true});
+  renderAll();
+}
+
+function pressed(a,b){ el(a).setAttribute("aria-pressed","true"); el(b).setAttribute("aria-pressed","false"); }
+el("mReplay").onclick = async () => { pressed("mReplay","mLive"); el("err").style.display="none"; await loadReplay(); };
+el("mLive").onclick = async () => {
+  pressed("mLive","mReplay");
+  try { await loadLive(); el("err").style.display="none"; }
+  catch(e){ el("err").style.display="block";
+    el("err").innerHTML = `<b>Live mode unavailable.</b> ${esc(e.message)}. Showing the recorded run instead. ` +
+      `Start it with <span class="mono">canton-devkit localnet up privity</span>.`;
+    pressed("mReplay","mLive"); await loadReplay(); }
+};
+
+loadReplay().catch(e => {
+  el("err").style.display = "block";
+  el("err").innerHTML = `<b>Could not load the recorded run.</b> ${esc(e.message)}. ` +
+    `Generate it with <span class="mono">node api/ledger.mjs capture</span>.`;
+});
+</script>
+</body>
+</html>
