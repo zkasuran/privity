@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privity: settlement infrastructure for tokenized funds on Canton</title>
+<meta name="description" content="Both legs of a tokenized fund trade settle in one Canton transaction. Each counterparty sees only the parcel it is buying.">
+<link rel="icon" href="logo.png">
+<meta property="og:title" content="Privity">
+<meta property="og:description" content="Both legs of a tokenized fund trade settle in one Canton transaction. Each counterparty sees only the parcel it is buying.">
+<meta property="og:image" content="https://zkasuran.github.io/privity-demo/logo.png">
+<meta property="og:url" content="https://zkasuran.github.io/privity-demo/">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#12151d; --panel2:#171b25; --line:#232834;
+    --ink:#e8ecf4; --mut:#8e98ab; --dim:#5c667a;
+    --acc:#4c7dff; --acc2:#5B8BFF; --ok:#1fbf75; --warn:#e0a330;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background-image:
+      radial-gradient(1000px 560px at 8% -14%,rgba(76,125,255,.13),transparent),
+      radial-gradient(760px 420px at 98% 2%,rgba(31,191,117,.07),transparent);
+    background-repeat:no-repeat}
+  a{color:var(--acc);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+
+  nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:-.01em}
+  .brand img{width:34px;height:34px;border-radius:9px}
+  .brand .dot{color:var(--acc)}
+  nav .links{display:flex;gap:18px;align-items:center;font-size:14.5px}
+  nav .links a{color:var(--mut)}
+  nav .links a:hover{color:var(--ink);text-decoration:none}
+
+  header.hero{padding:54px 0 16px}
+  .tag{display:inline-block;font:11.5px var(--mono);letter-spacing:.12em;text-transform:uppercase;
+    color:var(--acc2);border:1px solid #1d3a6b;background:#0e1626;padding:5px 11px;border-radius:20px;margin-bottom:22px}
+  h1{font-size:clamp(34px,5.2vw,56px);line-height:1.06;letter-spacing:-.032em;margin:0 0 20px;max-width:24ch}
+  h1 em{font-style:normal;color:var(--acc)}
+  .lede{font-size:19.5px;color:var(--mut);max-width:66ch;margin:0 0 30px}
+  .lede b{color:var(--ink)}
+  .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:12px 20px;border-radius:10px;
+    font-weight:600;font-size:15px;border:1px solid var(--line);background:var(--panel2);color:var(--ink)}
+  .btn:hover{text-decoration:none;border-color:#33405c}
+  .btn.primary{background:var(--acc);border-color:var(--acc);color:#fff}
+  .btn.primary:hover{background:#3a68f0}
+  .note{font-size:13.5px;color:var(--dim);margin-top:14px}
+
+  section{padding:52px 0;border-top:1px solid var(--line);margin-top:48px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.13em;color:var(--dim);margin:0 0 10px;font-weight:700}
+  h3.big{font-size:clamp(24px,3.3vw,34px);line-height:1.18;letter-spacing:-.022em;margin:0 0 18px;max-width:34ch}
+  h3.big em{font-style:normal;color:var(--acc)}
+  p.body{font-size:17px;color:var(--mut);max-width:72ch}
+  p.body b{color:var(--ink)}
+
+  .grid{display:grid;gap:14px;margin-top:26px}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(272px,1fr))}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h4{margin:0 0 8px;font-size:17px}
+  .card p{margin:0;font-size:14.5px;color:var(--mut)}
+  .stat{font-size:38px;font-weight:700;letter-spacing:-.03em;line-height:1;margin-bottom:8px}
+  .stat.ok{color:var(--ok)} .stat.acc{color:var(--acc)}
+  .cap{font:11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:12px}
+
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:26px 0 0}
+  ol.steps li{counter-increment:s;position:relative;padding:0 0 22px 52px}
+  ol.steps li:before{content:counter(s);position:absolute;left:0;top:-2px;width:34px;height:34px;
+    border-radius:10px;background:var(--panel2);border:1px solid var(--line);color:var(--acc2);
+    font:600 15px var(--mono);display:flex;align-items:center;justify-content:center}
+  ol.steps h4{margin:4px 0 5px;font-size:17.5px}
+  ol.steps p{margin:0;color:var(--mut);font-size:15.5px;max-width:70ch}
+
+  table{width:100%;border-collapse:collapse;font-size:15px;margin-top:22px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font:11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+  td.mono{font-family:var(--mono);font-size:13px;color:var(--mut)}
+  .yes{color:var(--ok);font-weight:700}
+  .no{color:#e2574c;font-weight:700}
+
+  .honest{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);
+    border-radius:12px;padding:18px 20px;margin-top:24px}
+  .honest h4{margin:0 0 8px;font-size:16px}
+  .honest p{margin:0 0 10px;font-size:15px;color:var(--mut)}
+  .honest p:last-child{margin-bottom:0}
+
+  footer{border-top:1px solid var(--line);margin-top:52px;padding:30px 0 70px;color:var(--dim);font-size:13.5px}
+  footer .row{display:flex;gap:26px;flex-wrap:wrap;justify-content:space-between}
+  code{font-family:var(--mono);font-size:13.5px;background:#0a0c11;border:1px solid var(--line);
+    border-radius:5px;padding:2px 6px;color:#cdd6e6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav>
+    <div class="brand"><img src="logo.png" alt=""><span>Privity<span class="dot">.</span></span></div>
+    <div class="links">
+      <a href="#problem">Problem</a>
+      <a href="#how">How it works</a>
+      <a href="#proof">Proof</a>
+      <a href="#limits">Limits</a>
+      <a href="demo/">Verified run</a>
+      <a href="https://github.com/zkasuran/privity">Code</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <span class="tag">HackCanton S3 &middot; Investment Infrastructure</span>
+    <h1>Fund trades that <em>cannot half-settle</em>.</h1>
+    <p class="lede">Privity is settlement infrastructure for tokenized funds on Canton.
+      Both legs of a trade commit in <b>one transaction</b>, so units and cash can never separate.
+      Each counterparty is shown <b>only the parcel it is buying</b>, never the other side's book.</p>
+    <div class="cta">
+      <a class="btn primary" href="demo/">See the verified run &rarr;</a>
+      <a class="btn" href="https://github.com/zkasuran/privity">Read the code</a>
+      <a class="btn" href="Privity-pitch.pdf">Pitch deck (PDF)</a>
+    </div>
+    <p class="note">Every number on this site came out of a real Canton participant or a cited
+      public source. Where something is unfinished, it says so.</p>
+  </header>
+
+  <section id="problem">
+    <h2>The problem</h2>
+    <h3 class="big">Tokenized fund trades still settle <em>like paper</em>.</h3>
+    <p class="body">An investor wires cash. Somebody watches a bank feed. Units get typed into the
+      register afterwards. The gap between those two events is carried by whoever is exposed when
+      it breaks, so closing it is a manual reconciliation task every month end.</p>
+    <p class="body" style="margin-top:14px">Delivery versus payment exists to remove that gap. It
+      is not happening here. It is free delivery with a human gate.</p>
+
+    <div class="grid g3">
+      <div class="card">
+        <div class="stat">238 &rarr; 462</div>
+        <div class="cap">NAV errors reported to the CSSF, 2019 to 2022</div>
+        <p>Investment compliance breaches <b>fell</b> over the same window. The failure mode that
+          is growing is the operational one. A NAV error triggers an investor compensation
+          procedure.</p>
+      </div>
+      <div class="card">
+        <div class="stat acc">One day</div>
+        <div class="cap">SEC transfer agent proposal, Sept 2026</div>
+        <p>Register posting moves to a one business day standard tied to the settlement cycle.
+          The SEC notes that for uncertificated securities, prompt posting and turnaround are
+          effectively the same event.</p>
+      </div>
+      <div class="card">
+        <div class="stat">13 Sept</div>
+        <div class="cap">DTCC tokenization launches on Canton</div>
+        <p>The register is moving on chain whether or not settlement follows it. Once units are
+          ledger contracts, how they settle against cash becomes a decision somebody has to make.</p>
+      </div>
+    </div>
+    <p class="note">CSSF figures reported by Deloitte Luxembourg from CSSF activity reports 2017
+      to 2022. SEC detail per Morgan Lewis analysis of the proposing release.</p>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <h3 class="big">One transaction, plus a disclosure that stops at the parcel.</h3>
+    <ol class="steps">
+      <li>
+        <h4>The seller earmarks exactly what it is selling</h4>
+        <p>400 units are split out of a 1,000 unit holding. That parcel and only that parcel,
+          becomes visible to the named buyer. The seller's remaining 600 units are a separate
+          contract the buyer is never a party to.</p>
+      </li>
+      <li>
+        <h4>Both legs commit together or neither does</h4>
+        <p>The share leg needs the seller's authority and the cash leg needs the buyer's. The
+          proposal is signed by the seller and exercised by the buyer, so a single transaction
+          carries both. There is no moment where one leg has moved and the other has not.</p>
+      </li>
+      <li>
+        <h4>Supervision is a contract, not an arrangement</h4>
+        <p>An auditor's visibility comes from a mandate that <b>both sides sign</b>, bounded in
+          time and revocable with a stated reason. If only the auditor signed, anyone could
+          assert supervision over anyone. If only the firm signed, it could manufacture evidence
+          of an audit that never happened.</p>
+      </li>
+      <li>
+        <h4>NAV is checkable, not merely signed</h4>
+        <p>The administrator submits the book and the ledger derives both the NAV per unit and a
+          canonical hash committing to those holdings. An entitled auditor recomputes both from a
+          book it already holds. Nobody else can run the check, so nobody learns the book from
+          the attestation.</p>
+      </li>
+    </ol>
+
+    <div class="honest" style="border-left-color:var(--acc)">
+      <h4>The design came from being wrong</h4>
+      <p>The first version had the buyer read the seller's holding to verify the trade. Canton
+        rejected it, because the buyer is not a stakeholder on that contract. The privacy
+        property was enforced against our own code.</p>
+      <p>The tempting repair was to add the buyer as an observer. That would have disclosed the
+        seller's entire position while still passing every happy-path test. Both versions compile.
+        Both settle correctly. Only a test written to falsify the claim tells them apart.</p>
+      <p>So this is <b>calibrated disclosure, not maximum secrecy</b>. Hide everything and the
+        buyer cannot verify what it is paying for. Disclose the holding and the product is
+        pointless. The engineering is finding the floor between them, so for a secondary trade
+        that floor is exactly one parcel.</p>
+    </div>
+  </section>
+
+  <section id="proof">
+    <h2>Proof</h2>
+    <h3 class="big">Four claims, each verified rather than asserted.</h3>
+    <table>
+      <tr><th>Claim</th><th>Evidence</th><th>Where</th></tr>
+      <tr><td>Both legs commit together</td><td class="mono">one transaction, 8 events</td><td class="yes">live participant</td></tr>
+      <tr><td>The buyer cannot read the seller's retained units</td><td class="mono">active contract query as the buyer returns nothing</td><td class="yes">live participant</td></tr>
+      <tr><td>A short payment settles nothing</td><td class="mono">transaction rejected, parcel still undelivered</td><td class="yes">test suite</td></tr>
+      <tr><td>NAV is tied to a specific book</td><td class="mono">auditor recomputes digest and NAV, both true</td><td class="yes">live participant</td></tr>
+    </table>
+    <div class="grid g3" style="margin-top:22px">
+      <div class="card"><div class="stat ok">18</div><div class="cap">Daml tests passing</div>
+        <p>Two are written to fail if the product claim is false, which is the only kind that
+          counts as evidence.</p></div>
+      <div class="card"><div class="stat acc">~2 min</div><div class="cap">LocalNet from nothing to healthy</div>
+        <p>The whole run reproduces from a clean machine with Docker. No Canton node, no cloud
+          account, no credentials.</p></div>
+      <div class="card"><div class="stat">0</div><div class="cap">daml-script in production DARs</div>
+        <p>Test tooling lives in its own package, so nothing a participant vets carries it.
+          Verified with <code>dpm inspect-dar</code>.</p></div>
+    </div>
+    <div class="cta" style="margin-top:26px">
+      <a class="btn primary" href="demo/">Open the verified run &rarr;</a>
+    </div>
+  </section>
+
+  <section id="who">
+    <h2>Who it is for</h2>
+    <h3 class="big">The person who certifies the register is right.</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>Pain owner</h4>
+        <p>Fund accounting or transfer agency lead at a mid-tier third-party administrator, 20 to
+          60 funds under administration. They hold the register <b>and</b> produce NAV, so both
+          legs of the problem land on one desk.</p>
+      </div>
+      <div class="card">
+        <h4>Economic buyer</h4>
+        <p>Head of operations or head of fund administration. The auditor is an influencer rather
+          than the buyer. The fund manager is a secondary buyer.</p>
+      </div>
+      <div class="card">
+        <h4>Why they switch</h4>
+        <p>Not for privacy as a feature. For a settlement that cannot half-complete, plus audit
+          evidence produced by the process instead of reconstructed once a year.</p>
+      </div>
+      <div class="card">
+        <h4>What stops them</h4>
+        <p>Any confidentiality regression is an instant no. After that, integration effort against
+          the incumbent admin system is the real cost of adoption. Price is their smallest
+          objection.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2>Honest limits</h2>
+    <h3 class="big">What is <em>not</em> done.</h3>
+    <p class="body">Stated here rather than left for a reader to discover, because a project that
+      hides its gaps makes its other claims harder to believe.</p>
+    <div class="grid g2">
+      <div class="honest">
+        <h4>Zero practitioner interviews</h4>
+        <p>Problem evidence is documentary and regulator-sourced, which moves problem validation
+          and not market validation. The interview instrument and a named target list are built.
+          A falsification test is committed in writing: if three interviews with the exact buyer
+          say the timing gap is already handled well enough, the wedge is wrong and the product
+          moves to the audit trail instead.</p>
+      </div>
+      <div class="honest">
+        <h4>Single synchronizer, LocalNet only</h4>
+        <p>A Daml transaction can only consume contracts assigned to one synchronizer, so the
+          atomicity here is demonstrated in that topology, which is what the Global Synchronizer
+          provides. The cross-synchronizer case is documented by Canton, needs no change to our
+          model, then carries no settlement risk because no value moves until the atomic step.
+          Nothing is deployed beyond a local network.</p>
+      </div>
+    </div>
+    <p class="body" style="margin-top:18px">No production integration with an admin system, which
+      is the largest practical adoption risk and the thing we have done least about.</p>
+  </section>
+
+  <section id="ask">
+    <h2>The ask</h2>
+    <h3 class="big">Three introductions, plus one design review.</h3>
+    <div class="grid g3">
+      <div class="card"><h4>Introductions</h4><p>Three fund administrators for validation
+        interviews. The single highest-value thing anyone can give us, because it is the one gap
+        we cannot close alone.</p></div>
+      <div class="card"><h4>A design review</h4><p>Should the disclosure layer be upstreamed as an
+        ecosystem primitive? Every Canton team building a multi-party workflow hits this wall, so
+        most will reach for the observer field.</p></div>
+      <div class="card"><h4>Operator guidance</h4><p>What a participant operator considers
+        acceptable for holding a share register in production.</p></div>
+    </div>
+    <p class="body" style="margin-top:20px">After the competition the disclosure package is
+      intended for Apache-2.0 release, so it can be adopted rather than admired.</p>
+  </section>
+
+  <footer>
+    <div class="row">
+      <div>
+        <div class="brand" style="font-size:16px;margin-bottom:8px"><img src="logo.png" alt="" style="width:26px;height:26px"><span>Privity<span class="dot">.</span></span></div>
+        <div>Source-available, no derivatives. Built for HackCanton Season 3.</div>
+      </div>
+      <div>
+        <div><a href="demo/">Verified run</a> &middot; <a href="https://github.com/zkasuran/privity">Code</a> &middot; <a href="Privity-pitch.pdf">Deck</a></div>
+        <div style="margin-top:8px">zkasuran &middot; <a href="https://github.com/zkasuran">github.com/zkasuran</a></div>
+      </div>
+    </div>
+    <p style="margin:22px 0 0;max-width:80ch">AI assistance (Claude, Anthropic) was used in
+      developing this project. The design decisions, review and verification are the author's.
+      Verified before publishing: three packages build, 18 of 18 Daml tests pass, both production
+      DARs vet on a live Canton participant, then this site returns 200 to an anonymous request.</p>
+  </footer>
+
+</div>
+</body>
+</html>

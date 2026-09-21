@@ -1,4 +1,15 @@
-# Privity demo UI
+# Privity web
+
+Two pages, both dependency-free and buildless.
+
+| File | Serves as | Audience |
+| --- | --- | --- |
+| `landing.html` | the root of the public site | a fund operations lead or a judge: problem, how it works, proof, limits, ask |
+| `index.html` | `/demo/` on the public site | an engineer: the verified ledger run rendered from `replay.json` |
+
+Published at https://zkasuran.github.io/privity-demo/ from a separate public repo holding only
+these static files, so the demo has a URL while the source repo stays private until submission.
+
 
 One self-contained page. No build step, no framework, no dependencies, so there is nothing
 to install and no supply chain to defend.
