@@ -23,6 +23,14 @@ Canton is the one place both properties hold at once, because a single transacti
 across parties while each participant validates only the views its own parties are
 stakeholders on.
 
+One precondition, stated up front rather than buried. A Daml transaction can only consume
+contracts assigned to the same synchronizer, so the atomicity here is demonstrated on a single
+synchronizer topology, which is what the Global Synchronizer provides. Where cash and register
+live on different synchronizers, Canton's reassignment protocol moves both to a common one
+first, and that preparation carries no settlement risk because no value changes hands until
+the atomic step. The full analysis, including what is verified and what is not, is in
+[docs/SYNCHRONIZER-TOPOLOGY.md](docs/SYNCHRONIZER-TOPOLOGY.md).
+
 Two independent signals that this is live now rather than speculative. DTCC launched a
 tokenization service on Canton on 13 September 2026. And in September 2026 the SEC proposed
 moving transfer agent register posting to a one-business-day standard tied to the settlement
