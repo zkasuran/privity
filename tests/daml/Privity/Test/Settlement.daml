@@ -639,6 +639,35 @@ testDigestIsOrderIndependentAndSensitive = do
   assertMsg "a different book must give a different digest"
     (holdingsDigestOf [a, b] /= holdingsDigestOf [a])
 
+-- | The one canonicalisation risk worth guarding. The digest must depend on the VALUE of each
+--   quantity and price, never on how the number happened to be written, or two parties holding
+--   the same book could compute different digests and verification would miss silently. Daml
+--   Decimal is value-canonical, so a line written 2.5 and the same line written 2.5000 hash the
+--   same. This test fails the moment that stops being true, for instance after an SDK change to
+--   how Decimal renders under `show`.
+testDigestCanonicalAcrossEquivalentDecimalForms : Script ()
+testDigestCanonicalAcrossEquivalentDecimalForms = do
+  let written1 =
+        [ HoldingLine with instrument = "AAA", quantity = 1.0, unitPrice = 2.5
+        , HoldingLine with instrument = "BBB", quantity = 100.0, unitPrice = 1.0
+        ]
+      written2 =
+        [ HoldingLine with instrument = "AAA", quantity = 1.00, unitPrice = 2.5000
+        , HoldingLine with instrument = "BBB", quantity = 100.0000, unitPrice = 1.0
+        ]
+  holdingsDigestOf written1 === holdingsDigestOf written2
+
+-- | Golden value. Pins the exact on-the-wire commitment for one fixed book, so any change to the
+--   serialisation (field order, separator, sort, or number rendering) changes this hash and trips
+--   the test. The commitment format cannot drift unnoticed between builds.
+testDigestGoldenValue : Script ()
+testDigestGoldenValue = do
+  let book =
+        [ HoldingLine with instrument = "CASH-USD", quantity = 250000.0, unitPrice = 1.0
+        , HoldingLine with instrument = "US912828YY01", quantity = 5000.0, unitPrice = 99.25
+        ]
+  holdingsDigestOf book === "sha256:b3240004689e0db683a128eb00ce172d0b688887eef1a8c48150a5aa328a5c10"
+
 -- | Small helper template so a Daml Script command can call an Update function.
 --   Scripts submit commands, and 'discloseUnder' is an 'Update', so it needs a
 --   choice to live in.

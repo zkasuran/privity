@@ -210,5 +210,5 @@ concludes, so it can be adopted as an ecosystem primitive. The reason for waitin
 
 AI assistance (Claude, Anthropic) was used in developing this project. The design decisions,
 the review and the verification are the author's. Verified before publishing: `dpm build --all`
-succeeds for all three packages, `dpm test` passes 15 of 15 scripts and both production DARs
+succeeds for all three packages, `dpm test` passes all 19 tests and both production DARs
 upload and vet on a live Canton LocalNet participant.

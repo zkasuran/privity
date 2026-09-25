@@ -30,9 +30,9 @@ Three of the four confirmed rows are confirmed by our own tests, which proves th
 
 ## 3. Tests and results
 
-### 3a. Ledger tests, 15 of 15 passing
+### 3a. Ledger tests, 19 of 19 passing
 
-Run with `dpm test`. 11 of 11 templates created. Two tests are written to **fail if the product claim is false**, which is the only kind of test that counts as evidence rather than demonstration.
+Run with `dpm test`. 11 of 11 templates created. Several tests are written to **fail if the product claim is false**, which is the only kind of test that counts as evidence rather than demonstration.
 
 | Test | The claim it would break |
 | --- | --- |
@@ -46,6 +46,8 @@ Run with `dpm test`. 11 of 11 templates created. Two tests are written to **fail
 | `testMandateLifecycle`, `testAuditorCannotSelfGrantMandate`, `testInvertedWindowRejected` | An auditor cannot manufacture visibility over an unwilling subject, revocation needs a stated reason, malformed windows are refused |
 | `testDisclosureOutsideWindowFails` | Disclosure inside a mandate window records, outside it is refused |
 | `testNavAttestation` | The administrator signs, the manager and a named auditor see it, a non-positive NAV is refused |
+| `testNavDigestIsVerifiable` | An entitled party recomputes the sha256 commitment from the book and it matches, a single altered price breaks the match, line order does not change it, a non-entitled party cannot verify at all. This is what makes the NAV checkable without publishing the book |
+| `testDigestGoldenValue`, `testDigestCanonicalAcrossEquivalentDecimalForms` | The commitment is pinned to a fixed hash and depends on the value of each holding, never on how a number was written, so verification cannot silently drift or miss between builds |
 
 **What we changed because of a test.** The most valuable result was a failure. The first implementation had the buyer verify the trade by reading the seller's share holding. Canton rejected it because the buyer is not a stakeholder on that contract. The obvious repair, adding the buyer as an observer, would have disclosed the seller's whole position while still passing every happy-path test. We redesigned so the unit of disclosure is a parcel rather than a holding, then added four tests to hold that line. **Both versions compiled and both settled correctly, so only a test written to falsify the claim distinguishes them.**
 
@@ -54,7 +56,8 @@ Run with `dpm test`. 11 of 11 templates created. Two tests are written to **fail
 | What | Result |
 | --- | --- |
 | LocalNet from nothing to healthy | about 2 minutes on warm images, Splice 0.8.1, full stack |
-| Packages vetted on the participant | 2 of 2 (`privity-disclosure` 1.0.0, `privity` 1.0.0) |
+| Packages vetted on the participant | 2 of 2 (`privity-disclosure` 1.1.0, `privity` 1.2.0), confirmed by querying the participant, not by trusting the upload |
+| Full flow over the JSON Ledger API | `./reproduce.sh` runs it one-command against the live participant: issue, subscribe, earmark, atomic DvP (8 events in one transaction), redeem, on-ledger digest verify, privacy check. Exit 0 only if the DvP commits, the digest verifies, plus the buyer cannot read the seller's retained units |
 | Production DARs carrying a `daml-script` dependency | **0**, verified with `dpm inspect-dar` after splitting tests into their own package |
 | Host preflight | all checks pass via `canton-devkit localnet doctor` |
 
@@ -94,7 +97,7 @@ Interviews are not the only form of evidence about what practitioners experience
 | Proposed Rule 17ad-31 requires maintaining a current list of authorized issuer employees, acting only on instructions from that list, then memorialising written determinations with supporting facts and approval | Independent regulatory validation of the shape of our `DisclosureMandate`: authority recorded in advance, exercised only by an entitled party, with retained evidence |
 | Rescission of Rule 17ad-4 removes exemptions for transfer agents processing limited partnership interests, DRIPs and redeemable open-end fund securities, a population the SEC estimates at **approximately 200 registered transfer agents** | A regulator-sourced count of firms in our product scope about to face accelerated standards. Better grounded than our own estimate |
 
-*All of the above is cited from Morgan Lewis's published analysis of the proposing release, dated 8 September 2026, which gives release page numbers. We have not read the release directly because sec.gov returns 403 to scripted access. Upgrading that citation is a tracked task.*
+*Source: Morgan Lewis LawFlash on the proposing release, dated 8 September 2026, read and verified 22 September 2026. Each quoted phrase above was confirmed against it, including the one-business-day framing (the shorter of one business day or Exchange Act Rule 15c6-1(a), currently T+1) and the "prompt posting and turnaround" sentence. The primary SEC release remains unread because sec.gov returns 403 to scripted access, so it stays labelled secondary rather than primary.*
 
 **What this evidence can and cannot do.** It establishes that the problem is real, that it is recognised by a regulator and that the timing is now. It does **not** establish that a specific administrator will change process, pay or prefer our approach to a cheaper workflow tool. Only interviews do that. Documentary evidence moves problem validation, not market validation. We are not going to claim otherwise.
 
@@ -164,7 +167,7 @@ The disclosure package row matters as much as the fund rows. If the primitive is
 - **Whether the timing gap is acute enough to change process.** The single biggest open question. Answer: the interview programme above, with a falsification test that can kill the wedge.
 - **Whether the pain owner can actually authorise a change.** The economic buyer is reasoned to be operations leadership, not tested. Answer: ask who signed off the last process change, in every interview.
 - **What confidentiality floor is genuinely acceptable.** We know a buyer must see the parcel and must not see the book. We do not know whether an administrator will accept the fund manager being a signatory on every share holding, which our current model requires. Answer: walk the actual stakeholder list past three practitioners and record objections.
-- **Whether the holdings digest design is meaningful to an auditor.** It is currently a placeholder string rather than a computed commitment, so we do not claim verifiable NAV. Answer: compute it from real holdings, then show it to a fund auditor.
+- **Whether the holdings digest design is meaningful to an auditor.** The commitment itself is real, not a placeholder: `NavAttestation` carries a sha256 over a canonical serialisation of the book, an entitled party recomputes and checks it, a tampered book fails, order does not matter, a non-entitled party is refused. That is tested and green. What is still unproven is whether a fund auditor treats an on-ledger recompute as their reconciliation control in practice. Answer: show it to a fund auditor and record whether it maps to how they evidence NAV support today.
 - **Whether behaviour matches the model over the real Ledger API.** Answer: run all three settlement types over the JSON Ledger API with allocated parties before submission.
 
 ---
