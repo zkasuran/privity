@@ -15,7 +15,8 @@ INSTANCE=privity
 say() { printf '%s\n' "$*"; }
 fail() { printf 'reproduce: %s\n' "$*" >&2; exit "${2:-1}"; }
 
-# 1. Toolchain + LocalNet env (JWT, endpoints).
+# 1. Toolchain + LocalNet env (JWT, endpoints). env.sh sits one level up, at the lane root.
+[ -f ../env.sh ] && . ../env.sh
 [ -f ./env.sh ] && . ./env.sh
 command -v canton-devkit >/dev/null || fail "canton-devkit not on PATH (source env.sh)" 1
 command -v node >/dev/null || fail "node not on PATH" 1
