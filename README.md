@@ -8,6 +8,7 @@ HackCanton Season 3 entry, Investment Infrastructure track.
 - **Verified run (replay):** https://zkasuran.github.io/privity-demo/demo/ renders the active
   contract set as each party sees it, from a receipt captured on a live LocalNet participant.
   It is labelled as a replay and is not a live connection.
+- **Demo video (3:16):** https://youtu.be/U6uKwpSrc8s
 - **Reproduce it yourself:** `./reproduce.sh`, see [below](#reproduce-it).
 
 ---

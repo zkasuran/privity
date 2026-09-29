@@ -32,8 +32,7 @@ Seven agents reviewed one journey section each. Their full reports are next to t
 ## Founder-only actions, in order
 
 1. **Make the repo public** (the code link returns 404 everywhere). 2 min.
-2. **Upload the video** (unlisted, with `captions.en.srt`), then send me the URL. I'll add it to
-   the deck, README and platform.
+2. ~~Upload the video~~ Done: https://youtu.be/U6uKwpSrc8s, linked in the deck, README, landing page and platform.
 3. **Publish the project** on the platform (MANA 1000/1000, `can-publish` is ready).
 4. **Post the journal entry below** to your mentor chat today. The digest is written from the journal,
    so work that isn't journaled doesn't move the statuses.
@@ -49,7 +48,7 @@ Seven agents reviewed one journey section each. Their full reports are next to t
 > Day 12 update. Build is frozen; today was verification and submission hardening.
 > MVP: the public demo now shows the 25 Sep verified LocalNet run with its real package id,
 > clearly labelled as a replay; `./reproduce.sh` regenerates that same receipt. A 3:16 narrated
-> demo video is rendered and being uploaded. The hosted URL is deliberately a labelled replay,
+> demo video is live at https://youtu.be/U6uKwpSrc8s and linked from the project page and deck. The hosted URL is deliberately a labelled replay,
 > not a live ledger. Open: making the repo public and publishing the project.
 > Citation check: DTCC's Tokenization Service launches in October 2026 (I had wrongly written
 > "launched 13 Sep"); CSSF 02/77 was replaced by 24/856 in 2025; the "same event" line is Morgan
