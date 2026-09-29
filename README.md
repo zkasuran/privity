@@ -5,6 +5,11 @@ in one transaction and each counterparty is shown only the parcel it is buying.
 
 HackCanton Season 3 entry, Investment Infrastructure track.
 
+- **Verified run (replay):** https://zkasuran.github.io/privity-demo/demo/ renders the active
+  contract set as each party sees it, from a receipt captured on a live LocalNet participant.
+  It is labelled as a replay and is not a live connection.
+- **Reproduce it yourself:** `./reproduce.sh`, see [below](#reproduce-it).
+
 ---
 
 ## The problem
@@ -112,7 +117,7 @@ engineering is finding the floor between them.
 
 ## Tests
 
-`dpm test` from `tests/`. 18 scripts, all passing. The two that matter are
+`dpm test` from `tests/`. 19 scripts, all passing. The two that matter are
 written to **fail if the product claim is false**, which is the only kind that counts as
 evidence rather than demonstration.
 
@@ -132,6 +137,8 @@ evidence rather than demonstration.
 | `testNavAttestation` | Administrator signs, manager and named auditor see it, non-positive NAV refused |
 | `testNavDigestIsVerifiable` | An entitled auditor recomputes the commitment from the book and it matches. One altered price breaks it. Line order does not. An investor cannot verify at all |
 | `testDigestIsOrderIndependentAndSensitive` | The digest is canonical: order-independent, content-sensitive |
+| `testDigestCanonicalAcrossEquivalentDecimalForms` | Equal-value books hash the same however the decimals were written |
+| `testDigestGoldenValue` | Pins the exact commitment hash, so the serialisation format cannot drift |
 | `testCannotBackdateMandateCheck` | Ledger time is past expiry while the caller claims a date inside the window. It returns false |
 | `testDisclosureOutsideWindowFails` | Disclosure inside a mandate window records, outside is refused |
 
@@ -158,10 +165,20 @@ dpm build --all
 cd tests && dpm test && cd ..
 
 # 6. Put the packages on the participant
-canton-devkit localnet dar upload disclosure/.daml/dist/privity-disclosure-1.0.0.dar --instance privity
-canton-devkit localnet dar upload app/.daml/dist/privity-1.0.0.dar --instance privity
+canton-devkit localnet dar upload disclosure/.daml/dist/privity-disclosure-1.1.0.dar --instance privity
+canton-devkit localnet dar upload app/.daml/dist/privity-1.2.0.dar --instance privity
 canton-devkit localnet dar list --instance privity
+
+# 7. Full settlement + privacy flow over the JSON Ledger API, with a receipt
+./reproduce.sh
 ```
+
+`reproduce.sh` vets the current DAR, runs issue, subscribe, earmark, atomic DvP, mandate, NAV
+attestation and on-ledger verification through the JSON Ledger API with allocated parties, then
+prints a receipt read back from the captured run: the DvP transaction id and event count, digest
+and NAV verification, the privacy verdict (the buyer cannot read the units the seller kept) and
+the saved artifact `ui/replay.json`. It exits 0 only if every check passes. That artifact is
+what the public replay renders.
 
 Measured on this machine: LocalNet from nothing to healthy in about 2 minutes on warm images,
 Splice 0.8.1. Both packages vetted.
@@ -175,11 +192,16 @@ version or rebuild the instance with `localnet remove` then `localnet up`.
 
 Stated here rather than left for a reader to discover.
 
-- **No UI.** Everything is exercised from Daml Script. A demo interface is in progress.
-- **No app backend.** No JSON Ledger API client yet.
-- **Tests run against the IDE ledger.** They prove the model. They do not yet prove the same
-  behaviour over the real Ledger API with allocated parties.
+- **The public demo is a replay, not a live ledger.** It renders a receipt captured from a
+  LocalNet participant. Running it live needs `./reproduce.sh` on your own machine.
+- **No production backend.** `api/ledger.mjs` is a thin JSON Ledger API client used to drive
+  and capture the flow. There is no service layer, authentication model or persistence beyond
+  the ledger.
 - **Nothing deployed beyond LocalNet.** No DevNet, no MainNet.
+- **Digest canonicalisation relies on Daml's `show` for `Decimal`.** It is computed only on
+  ledger and pinned by `testDigestGoldenValue`, so it cannot drift silently. It is not yet a
+  written, versioned serialisation spec that an off-ledger implementation could follow.
+  Changing it would change every digest, so it stays frozen for the submission.
 - **Zero practitioner interviews.** Problem evidence is documentary and regulator-sourced. That
   moves problem validation, not market validation and the distinction is kept explicit.
 

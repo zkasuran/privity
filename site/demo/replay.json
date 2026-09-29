@@ -1,20 +1,20 @@
 {
- "capturedAt": "2026-09-21T08:16:42.644Z",
+ "capturedAt": "2026-09-25T11:30:52.130Z",
  "network": {
   "ledgerApiVersion": "3.5.17",
-  "jsonApi": "http://localhost:32787",
-  "packageId": "x"
+  "jsonApi": "http://localhost:44781",
+  "packageId": "8c3a221b84248c2251bc4559a26726f3eb4e5a9be138aae7c1674b05d52119ba"
  },
  "steps": [
   {
    "n": 1,
    "title": "Fund created jointly by manager and administrator",
    "note": "Both sign. An administrator cannot be named as the party striking NAV without having agreed.",
-   "updateId": "122033bd52bd3c8ddb62f2f34c8d5bd9994b44031570f8880c872ee1e1a0cdb4786f",
+   "updateId": "122008611bcec44896d5fb59c7ddb9702e59ac8c92d3c6ec8da926075e237a4e6215",
    "contracts": [
     {
      "template": "Fund",
-     "cid": "00a2c3158f87e059034d006a2a93c0602e87ed97eabd4814de6af9ab03f80e453bca121220d03690161567ea04a97e42f520b47913fa32a3c1060602936eb81feee89823a9"
+     "cid": "00b5315a959601b27984a71861f103e643bfe89aee5043a66eba8b063fc8e29c0eca1212204a5158b9c9a349b8a90de2b9957f0b2ab49f1487d01ad35ce945e5a99fed1d1c"
     }
    ]
   },
@@ -22,11 +22,11 @@
    "n": 2,
    "title": "Cash issued to the buyer through offer and accept",
    "note": "The issuer cannot push a holding onto an unwilling recipient.",
-   "updateId": "1220791c1d0de7b0981f8a64a6f9e3e7ca9a31d07cb43e14deca35de6de38684b6db",
+   "updateId": "12206f8648d2965972b1487da95ed828fee20028f85392bedc98cf510b3844b64e58",
    "contracts": [
     {
      "template": "CashHolding",
-     "cid": "004a0af8a173b422177c19de667895abd7d64238a2bca8653faa30f6a3104cd13fca12122008b378453c13ff7dbfc2dcd0e0da91b996d65626b35ad59fc8219ae5a673cc63",
+     "cid": "0080a38e1660337d83052d32721b0ac6e9ce8b04564bc80b78bdb05f51b78ef423ca12122007bc8e1acc3110bed82e01feae1141e04776eac07c722a1b007a8b5d5173a3c2",
      "amount": "150000",
      "instrument": "USDC"
     }
@@ -36,11 +36,11 @@
    "n": 3,
    "title": "Seller on the register with 1,000 units",
    "note": "Stakeholders are manager, administrator and investor. No other investor appears.",
-   "updateId": "1220f6e33e86f9bf0768a920a9b7b2902b541908a7fcda9429fba106c37d473966e6",
+   "updateId": "1220f472eee4f1e5c5edfc2f20831980d106a23a9a6c27518e4ba99e7efb5a04def6",
    "contracts": [
     {
      "template": "ShareHolding",
-     "cid": "00e12e28198407857eb8840cabaa09055c61be19d8d670f96db4fc4bc295c48984ca121220c2efbd6188b3fc72e23b093374b3bbd144538bb693f3aa58ef7b914130671789",
+     "cid": "00b4e779868dea9d545c3c61b006e7eb49d164d34021c31e19faf71beffc57951fca1212207b60c8eefb90b1189d96b199d4e83fd2177fb331aee454c5f4472e5f359b7bbd",
      "units": "1000"
     }
    ]
@@ -49,17 +49,17 @@
    "n": 4,
    "title": "Seller earmarks exactly the parcel being sold",
    "note": "This is the calibrated-disclosure step. Only the parcel becomes visible to the buyer. The retained units never do.",
-   "updateId": "12206a270da9a45c0e9872c6b7d15e0f57baa0d97afa4966d6fc21721f516df53c22",
+   "updateId": "12202275613cfc9f7f7004871b7b956a9ba39864ffd8ba9a568ff1c7f6594ff59657",
    "contracts": [
     {
      "template": "ShareHolding",
-     "cid": "00ec733d3fa3dc1202318e8772dc5accdf1d9b571fb49eab6c27340bf9f79f638eca1212209e5ba662381fe958dc9753deb1ad7f2f817e29dd87dc716865a6c9cba7419c17",
+     "cid": "004031e9d99eeb0eb6e63b1fba4b3b0ddc5f5142e31534af465ec2e7e7186abb15ca121220fdb6dd596471cb2cfcb9e73d654df81fa48707fc9a541e37879705ff296c3489",
      "units": "400.0000000000",
      "disclosedTo": "buyer"
     },
     {
      "template": "ShareHolding",
-     "cid": "001c8cf59e26dfbd5d3f661fbe29156b15dc22083db55a0414c3c8b1bdf39031ceca121220196ee441c25e324ceebfacbf93ec341bfc5b89a76c6f9b977f5350809107e280",
+     "cid": "000912fa92c60cc5fb079008520e6e604c591531d9b5591f8233b665841474e468ca1212201408711343677626228471a06f0590f03cf7724ca876f0ed873823366de8c6df",
      "units": "600.0000000000",
      "disclosedTo": "seller only"
     }
@@ -69,52 +69,52 @@
    "n": 5,
    "title": "Atomic delivery versus payment, one transaction",
    "note": "The share leg needs the seller's authority and the cash leg needs the buyer's. The proposal is signed by the seller and exercised by the buyer, so one transaction carries both. It commits whole or not at all.",
-   "updateId": "1220f2b386dc5f64cf11d059f3c42fd470ecb0de476e11f5492c3ec0f0a5cbc52982",
+   "updateId": "12208927dc6b6ae55429d9803297a657dcc4759c74feaab2def7ca658bf526d6c653",
    "eventCount": 8,
    "events": [
     {
      "kind": "exercised",
      "template": "DvpProposal",
      "choice": "SettleDvP",
-     "cid": "00f50b84f49a9b831e22f52266be3564960701782f95391b9c74917af38d320143ca121220770632b99d555461d26da0db718f7650ec5dbabaa77435211cf89193f4c68400"
+     "cid": "003695eb66b614ccc15905afea09187ae957023ccb729b7846f97ad744d489560aca1212203cded43f41d7c88716a69762f93b2d8c7e650a0d2187993c6efaa5c2fd9a62a9"
     },
     {
      "kind": "exercised",
      "template": "ShareHolding",
      "choice": "TransferShares",
-     "cid": "00ec733d3fa3dc1202318e8772dc5accdf1d9b571fb49eab6c27340bf9f79f638eca1212209e5ba662381fe958dc9753deb1ad7f2f817e29dd87dc716865a6c9cba7419c17"
+     "cid": "004031e9d99eeb0eb6e63b1fba4b3b0ddc5f5142e31534af465ec2e7e7186abb15ca121220fdb6dd596471cb2cfcb9e73d654df81fa48707fc9a541e37879705ff296c3489"
     },
     {
      "kind": "created",
      "template": "ShareHolding",
-     "cid": "0029b2fc812181699ae14c3d524054ee497459b45ef50911e51aa8047d8381f40bca121220155c833588b7aeeee993330019fcd078ca076e3ab479100ab7e7515ca75e9c56"
+     "cid": "009a50e24213ab9268fd967727c7395ffaea00e5cbb62d7c44cc685cfc3d81dac0ca1212208e0d604e10ee9f477f237aaf4096bee361ffcf5e2dd8eda613a8630c8d68ff55"
     },
     {
      "kind": "exercised",
      "template": "CashHolding",
      "choice": "SplitCash",
-     "cid": "004a0af8a173b422177c19de667895abd7d64238a2bca8653faa30f6a3104cd13fca12122008b378453c13ff7dbfc2dcd0e0da91b996d65626b35ad59fc8219ae5a673cc63"
+     "cid": "0080a38e1660337d83052d32721b0ac6e9ce8b04564bc80b78bdb05f51b78ef423ca12122007bc8e1acc3110bed82e01feae1141e04776eac07c722a1b007a8b5d5173a3c2"
     },
     {
      "kind": "created",
      "template": "CashHolding",
-     "cid": "00debbecb22ea8efe92f7254c94d90eefdb722413baf442ab20dc4a64e641f3b5aca1212209d9fbcabdffb101e7fe96e99d3b4c7bdf0f91a1b15c4940100b6e44a674207c8"
+     "cid": "0033d25bf710f78eac9fa829897b8def2bbdf9db48c55cd2e969eed47539cf351eca121220b4a991ac1968d81047dcdf9c1d45d3024bbcac5ae3601140b5332701f74e02d7"
     },
     {
      "kind": "created",
      "template": "CashHolding",
-     "cid": "0037df588e3f79795ba7b2993e71a76a91a041f9387bf51e1c976a4458cabab355ca12122034cfcda32fdb683a3d1ac64e7e8743af9a60a5f0468a92e11ebfbb37a063cf3f"
+     "cid": "00697af0c933040677bf857a7f935a6b87b8b3b7a47e3a5ec1983c0142e20feea1ca121220e2baa3b6812c274e2c342787cd002b442456537d00f712383e0239747f1228cc"
     },
     {
      "kind": "exercised",
      "template": "CashHolding",
      "choice": "TransferCash",
-     "cid": "00debbecb22ea8efe92f7254c94d90eefdb722413baf442ab20dc4a64e641f3b5aca1212209d9fbcabdffb101e7fe96e99d3b4c7bdf0f91a1b15c4940100b6e44a674207c8"
+     "cid": "0033d25bf710f78eac9fa829897b8def2bbdf9db48c55cd2e969eed47539cf351eca121220b4a991ac1968d81047dcdf9c1d45d3024bbcac5ae3601140b5332701f74e02d7"
     },
     {
      "kind": "created",
      "template": "CashHolding",
-     "cid": "009733e027037c99eba49d1cddefb9540d23c108ad435805fa15cd4545a6edffb0ca12122031adba1bd1588d5f4f9aed7c3e2145868a68076cd07a1d00bf536c156ed8805d"
+     "cid": "00729e9cc3227a7a99b3f576ee9eb45b99cd81b2224a4918f1367af7ff1b0e69b2ca12122078e76a0587555d43fdce6f942372bf2791b81b5510e52217def55e9b3617ee14"
     }
    ]
   },
@@ -122,11 +122,11 @@
    "n": 6,
    "title": "Supervision mandate: offered by the fund, accepted by the auditor",
    "note": "Both sides sign. An auditor cannot self-grant visibility and a firm cannot fake having been audited. The mandate is time bounded and either side can revoke it with a stated reason.",
-   "updateId": "1220cfa6bce26880403561cad973e347535cbe45b4ff87235a95ad57ad21e2e40f23",
+   "updateId": "122004b054279f635e0e9fea1cc58a8835178f4af09ba3ffe7c95f3cc147f86d1ca2",
    "contracts": [
     {
      "template": "DisclosureMandate",
-     "cid": "005d349f8f33dcc1f3b024a3fb9de14a33ad2bc243035c17d64a2624bbaea47675ca121220ea386ed6eadfcf8f1618114b9ece5afa297bb1d8ed6786054e5d985250ab52cb",
+     "cid": "00ab6bd110c624f9fe55b65dab5266fad0be417fe74c30a0d70484b9c22f43490fca12122096fa8ee7d6babf3bc3c77ff50c7e4e7db647037cee40611b073b1e4dd228b71e",
      "basis": "StatutoryAudit"
     }
    ]
@@ -135,11 +135,11 @@
    "n": 7,
    "title": "NAV attested by the independent administrator",
    "note": "The administrator submits the book and the ledger derives both the NAV per unit and a canonical sha256 commitment over the holdings. Nothing off ledger computes the digest, so there is only one canonicalisation and it cannot drift.",
-   "updateId": "12200c352e9c5f2b8b5ab6191335fc50f4548fdd586c9addd5d857da8e8fd8527e1b",
+   "updateId": "12207c528cc1c188cc855987a89034ff373db5e4936306b2b1299826654ebb79e093",
    "contracts": [
     {
      "template": "NavAttestation",
-     "cid": "0082fd4d7f913770da58f7ac741d834a1674f3ca5379e65f220647a6072e83c7bcca12122096bb6da7feae16c58f5e3f27bb14b59132873a459705aa5bcdf7992dd5b8fc80",
+     "cid": "00a0d901dfa6210a93059e697b35e0d8e6ecd71eb77bd90fc7421ac63725d3b63aca121220574e7e9acc4e57c1666e718ab5f1c0d16f07e18467d2bb9cffdc23844e0b33d0",
      "navPerUnit": "105.0450000000",
      "unitsOutstanding": "10000"
     }
@@ -149,7 +149,7 @@
    "n": 8,
    "title": "Auditor verifies the NAV against the book, on ledger",
    "note": "The auditor recomputes the commitment and the NAV from a book it already holds. Both match, so the attested figure is provably tied to that portfolio without the portfolio being disclosed to anyone not entitled to it. An investor holding the same book cannot run this check at all, because entitlement is enforced in the choice.",
-   "updateId": "12200aad2c156cca72e4a8c9ed060369da78856ac344c08ac8eae4a53390fc23e42c",
+   "updateId": "12208c9ae3b25126109ed8cc065aa0857c35536a92b252b893e50c538a6f4183187a",
    "digestVerified": true,
    "navVerified": true,
    "holdingsDigest": "sha256:91f2a56588877d045abd758ef9269063eb7d34755281525c9188c10a430417d8"
@@ -160,7 +160,7 @@
    "party": "alice-pension::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
    "fromThisRun": [
     {
-     "cid": "001c8cf59e26dfbd5d3f661fbe29156b15dc22083db55a0414c3c8b1bdf39031ceca121220196ee441c25e324ceebfacbf93ec341bfc5b89a76c6f9b977f5350809107e280",
+     "cid": "000912fa92c60cc5fb079008520e6e604c591531d9b5591f8233b665841474e468ca1212201408711343677626228471a06f0590f03cf7724ca876f0ed873823366de8c6df",
      "template": "Privity.Fund:ShareHolding",
      "args": {
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -171,7 +171,7 @@
      }
     },
     {
-     "cid": "009733e027037c99eba49d1cddefb9540d23c108ad435805fa15cd4545a6edffb0ca12122031adba1bd1588d5f4f9aed7c3e2145868a68076cd07a1d00bf536c156ed8805d",
+     "cid": "00729e9cc3227a7a99b3f576ee9eb45b99cd81b2224a4918f1367af7ff1b0e69b2ca12122078e76a0587555d43fdce6f942372bf2791b81b5510e52217def55e9b3617ee14",
      "template": "Privity.Cash:CashHolding",
      "args": {
       "issuer": "brale-issuer::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -181,13 +181,13 @@
      }
     }
    ],
-   "totalVisible": 18
+   "totalVisible": 24
   },
   "buyer": {
    "party": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
    "fromThisRun": [
     {
-     "cid": "0029b2fc812181699ae14c3d524054ee497459b45ef50911e51aa8047d8381f40bca121220155c833588b7aeeee993330019fcd078ca076e3ab479100ab7e7515ca75e9c56",
+     "cid": "009a50e24213ab9268fd967727c7395ffaea00e5cbb62d7c44cc685cfc3d81dac0ca1212208e0d604e10ee9f477f237aaf4096bee361ffcf5e2dd8eda613a8630c8d68ff55",
      "template": "Privity.Fund:ShareHolding",
      "args": {
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -198,7 +198,7 @@
      }
     },
     {
-     "cid": "0037df588e3f79795ba7b2993e71a76a91a041f9387bf51e1c976a4458cabab355ca12122034cfcda32fdb683a3d1ac64e7e8743af9a60a5f0468a92e11ebfbb37a063cf3f",
+     "cid": "00697af0c933040677bf857a7f935a6b87b8b3b7a47e3a5ec1983c0142e20feea1ca121220e2baa3b6812c274e2c342787cd002b442456537d00f712383e0239747f1228cc",
      "template": "Privity.Cash:CashHolding",
      "args": {
       "issuer": "brale-issuer::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -208,13 +208,13 @@
      }
     }
    ],
-   "totalVisible": 18
+   "totalVisible": 24
   },
   "administrator": {
    "party": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
    "fromThisRun": [
     {
-     "cid": "00a2c3158f87e059034d006a2a93c0602e87ed97eabd4814de6af9ab03f80e453bca121220d03690161567ea04a97e42f520b47913fa32a3c1060602936eb81feee89823a9",
+     "cid": "00b5315a959601b27984a71861f103e643bfe89aee5043a66eba8b063fc8e29c0eca1212204a5158b9c9a349b8a90de2b9957f0b2ab49f1487d01ad35ce945e5a99fed1d1c",
      "template": "Privity.Fund:Fund",
      "args": {
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -226,7 +226,7 @@
      }
     },
     {
-     "cid": "001c8cf59e26dfbd5d3f661fbe29156b15dc22083db55a0414c3c8b1bdf39031ceca121220196ee441c25e324ceebfacbf93ec341bfc5b89a76c6f9b977f5350809107e280",
+     "cid": "000912fa92c60cc5fb079008520e6e604c591531d9b5591f8233b665841474e468ca1212201408711343677626228471a06f0590f03cf7724ca876f0ed873823366de8c6df",
      "template": "Privity.Fund:ShareHolding",
      "args": {
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -237,7 +237,7 @@
      }
     },
     {
-     "cid": "0029b2fc812181699ae14c3d524054ee497459b45ef50911e51aa8047d8381f40bca121220155c833588b7aeeee993330019fcd078ca076e3ab479100ab7e7515ca75e9c56",
+     "cid": "009a50e24213ab9268fd967727c7395ffaea00e5cbb62d7c44cc685cfc3d81dac0ca1212208e0d604e10ee9f477f237aaf4096bee361ffcf5e2dd8eda613a8630c8d68ff55",
      "template": "Privity.Fund:ShareHolding",
      "args": {
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -248,10 +248,10 @@
      }
     },
     {
-     "cid": "0082fd4d7f913770da58f7ac741d834a1674f3ca5379e65f220647a6072e83c7bcca12122096bb6da7feae16c58f5e3f27bb14b59132873a459705aa5bcdf7992dd5b8fc80",
+     "cid": "00a0d901dfa6210a93059e697b35e0d8e6ecd71eb77bd90fc7421ac63725d3b63aca121220574e7e9acc4e57c1666e718ab5f1c0d16f07e18467d2bb9cffdc23844e0b33d0",
      "template": "Privity.Fund:NavAttestation",
      "args": {
-      "fund": "00a2c3158f87e059034d006a2a93c0602e87ed97eabd4814de6af9ab03f80e453bca121220d03690161567ea04a97e42f520b47913fa32a3c1060602936eb81feee89823a9",
+      "fund": "00b5315a959601b27984a71861f103e643bfe89aee5043a66eba8b063fc8e29c0eca1212204a5158b9c9a349b8a90de2b9957f0b2ab49f1487d01ad35ce945e5a99fed1d1c",
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
       "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
       "symbol": "PRIV-I",
@@ -263,13 +263,13 @@
      }
     }
    ],
-   "totalVisible": 32
+   "totalVisible": 44
   },
   "auditor": {
    "party": "supervisor-auditor::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
    "fromThisRun": [
     {
-     "cid": "005d349f8f33dcc1f3b024a3fb9de14a33ad2bc243035c17d64a2624bbaea47675ca121220ea386ed6eadfcf8f1618114b9ece5afa297bb1d8ed6786054e5d985250ab52cb",
+     "cid": "00ab6bd110c624f9fe55b65dab5266fad0be417fe74c30a0d70484b9c22f43490fca12122096fa8ee7d6babf3bc3c77ff50c7e4e7db647037cee40611b073b1e4dd228b71e",
      "template": "Privity.Disclosure:DisclosureMandate",
      "args": {
       "subject": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
@@ -284,10 +284,10 @@
      }
     },
     {
-     "cid": "0082fd4d7f913770da58f7ac741d834a1674f3ca5379e65f220647a6072e83c7bcca12122096bb6da7feae16c58f5e3f27bb14b59132873a459705aa5bcdf7992dd5b8fc80",
+     "cid": "00a0d901dfa6210a93059e697b35e0d8e6ecd71eb77bd90fc7421ac63725d3b63aca121220574e7e9acc4e57c1666e718ab5f1c0d16f07e18467d2bb9cffdc23844e0b33d0",
      "template": "Privity.Fund:NavAttestation",
      "args": {
-      "fund": "00a2c3158f87e059034d006a2a93c0602e87ed97eabd4814de6af9ab03f80e453bca121220d03690161567ea04a97e42f520b47913fa32a3c1060602936eb81feee89823a9",
+      "fund": "00b5315a959601b27984a71861f103e643bfe89aee5043a66eba8b063fc8e29c0eca1212204a5158b9c9a349b8a90de2b9957f0b2ab49f1487d01ad35ce945e5a99fed1d1c",
       "manager": "meridian-manager::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
       "administrator": "northgate-administrator::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05",
       "symbol": "PRIV-I",
@@ -299,7 +299,7 @@
      }
     }
    ],
-   "totalVisible": 12
+   "totalVisible": 18
   }
  },
  "parties": {
@@ -311,7 +311,7 @@
   "bob": "bob-family-office::12201af0734ee7d9b74bd8274bc70b263f71dbf132292a8c1b635c90419e44f7da05"
  },
  "privacyCheck": {
-  "retainedParcelCid": "001c8cf59e26dfbd5d3f661fbe29156b15dc22083db55a0414c3c8b1bdf39031ceca121220196ee441c25e324ceebfacbf93ec341bfc5b89a76c6f9b977f5350809107e280",
+  "retainedParcelCid": "000912fa92c60cc5fb079008520e6e604c591531d9b5591f8233b665841474e468ca1212201408711343677626228471a06f0590f03cf7724ca876f0ed873823366de8c6df",
   "sellerCanSeeRetained": true,
   "buyerCanSeeRetained": false,
   "verdict": "PASS"
