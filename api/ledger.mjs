@@ -15,7 +15,7 @@
  *   node ledger.mjs <command>
  *
  *   parties            allocate the six fund-workflow parties (idempotent)
- *   demo               run the full flow: issue, subscribe, earmark, settle DvP, redeem
+ *   demo               run the full flow: fund, cash issue, earmark, settle DvP, mandate, NAV attest + verify
  *   privacy            prove the buyer cannot read the seller's retained units
  *   acs <party>        active contracts visible to one party
  */

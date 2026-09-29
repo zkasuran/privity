@@ -50,8 +50,8 @@ for hp in $(docker port "${INSTANCE}-canton" 2>/dev/null | sed -nE 's#.*-> 127.0
   CANDS+=("$url")
 done
 
-# 4. Try each candidate: vet the DAR on it, run the full flow (issue, subscribe, earmark,
-#    atomic DvP, redeem, digest verify, privacy check), take the first that commits. `capture`
+# 4. Try each candidate: vet the DAR on it, run the full flow (fund, cash issue, earmark,
+#    atomic DvP, mandate, NAV attest, digest verify, privacy check), take the first that commits. `capture`
 #    writes ui/replay.json as the machine-readable receipt. Delete it first so a stale file can
 #    never pass for this run.
 vet() {

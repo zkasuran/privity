@@ -36,11 +36,12 @@ first and that preparation carries no settlement risk because no value changes h
 the atomic step. The full analysis, including what is verified and what is not, is in
 [docs/SYNCHRONIZER-TOPOLOGY.md](docs/SYNCHRONIZER-TOPOLOGY.md).
 
-Two independent signals that this is live now rather than speculative. DTCC launched a
-tokenization service on Canton on 13 September 2026. And in September 2026 the SEC proposed
-moving transfer agent register posting to a one-business-day standard tied to the settlement
-cycle, observing that "for uncertificated securities, prompt posting and turnaround are
-effectively the same event". Privity makes them literally one event.
+Two independent signals that this is live now rather than speculative. DTCC processed its
+first US trades with DTC-tokenized assets on 15 July 2026 and says its Tokenization Service,
+with Canton among the supported networks, launches in October 2026. And in September 2026 the
+SEC proposed moving transfer agent register posting to a one-business-day standard tied to the
+settlement cycle, which Morgan Lewis summarises as treating prompt posting and turnaround as
+effectively the same event for uncertificated securities. Privity makes them literally one event.
 
 ## What it does
 
@@ -173,7 +174,7 @@ canton-devkit localnet dar list --instance privity
 ./reproduce.sh
 ```
 
-`reproduce.sh` vets the current DAR, runs issue, subscribe, earmark, atomic DvP, mandate, NAV
+`reproduce.sh` vets the current DAR, runs fund creation, cash issuance, earmark, atomic DvP, mandate, NAV
 attestation and on-ledger verification through the JSON Ledger API with allocated parties, then
 prints a receipt read back from the captured run: the DvP transaction id and event count, digest
 and NAV verification, the privacy verdict (the buyer cannot read the units the seller kept) and
