@@ -168,20 +168,15 @@
     <h2>Run it yourself</h2>
     <pre id="repro">canton-devkit localnet up privity
 dpm build --all
-cd tests &amp;&amp; dpm test          # 15 tests
-canton-devkit localnet dar upload disclosure/.daml/dist/privity-disclosure-1.0.0.dar --instance privity
-canton-devkit localnet dar upload app/.daml/dist/privity-1.0.0.dar --instance privity
-eval "$(canton-devkit localnet env privity)"
-node api/ledger.mjs demo        # the flow above, against your own participant</pre>
+cd tests &amp;&amp; dpm test &amp;&amp; cd ..   # 19 tests
+canton-devkit localnet dar upload disclosure/.daml/dist/privity-disclosure-1.1.0.dar --instance privity
+canton-devkit localnet dar upload app/.daml/dist/privity-1.2.0.dar --instance privity
+./reproduce.sh                   # the flow above, against your own participant, with a receipt</pre>
   </section>
 
   <div class="honest">
     <b>What is real and what is not.</b> Every number, contract id and transaction id on this page came out of
-    a real Canton participant. Nothing is mocked and no output is retyped. Two things are honestly incomplete:
-    the NAV holdings digest is a placeholder string rather than a hash computed over real holdings, so
-    verifiable NAV is a design and not yet a feature, and the auditor is entitled to the mandate and the
-    attestation rather than to individual positions, which is the intended need-to-know posture rather than a
-    limitation. Replay mode shows a recorded verified run so a reader with no Docker can still see genuine
+    a real Canton participant. Nothing is mocked and no output is retyped. The NAV holdings digest is a real sha256 over a canonical serialisation of the book, computed and verified on ledger. The auditor is entitled to the mandate and the attestation rather than to individual positions, which is the intended need-to-know posture rather than a limitation. Replay mode shows a recorded verified run so a reader with no Docker can still see genuine
     ledger data. Live mode talks to a participant on your own machine.
   </div>
 

@@ -1,0 +1,49 @@
+{
+  "snippet": {
+    "title": "Privity: fund trades that cannot half-settle | Atomic DvP + need-to-know privacy on Canton",
+    "description": "Privity is settlement infrastructure for tokenized funds on Canton. Both legs of a fund trade, units and cash, commit in one atomic Daml transaction, so delivery and payment can never separate. Each counterparty sees only the parcel it is buying, never the other side's book, and an independent administrator attests NAV with a sha256 commitment that an entitled auditor can verify on ledger.\n\nEverything on screen comes from a real run on a Canton LocalNet participant (Ledger API 3.5.17), captured through the JSON Ledger API and shown as a labelled replay. The terminal receipt is the output of reproduce.sh for that same recorded run.\n\n▶ Verified run (replay): https://zkasuran.github.io/privity-demo/demo/\n▶ Project site: https://zkasuran.github.io/privity-demo/\n▶ Code: https://github.com/zkasuran/privity\n\nChapters\n0:00 Intro\n0:10 The idea\n0:26 Watch a trade settle\n0:47 The verified run\n0:59 Four claims\n1:13 The settlement, step by step\n1:31 One atomic transaction\n1:46 Who sees what\n2:06 The Daml behind it\n2:24 Verifiable NAV\n2:42 Reproduce it yourself\n3:01 Wrap-up\n\nWhat you'll see\n• Atomic delivery versus payment: shares and cash move in one transaction, 8 events, one commit\n• Calibrated disclosure: the seller earmarks exactly the parcel being sold; the buyer can verify it and never sees the retained units\n• Need-to-know, read back from the ledger: active contract queries issued as each of the four parties\n• Verifiable NAV: an on-ledger sha256 commitment over the book, recomputed by an entitled auditor\n• One-command reproduction with a pass/fail receipt\n\nBuilt for HackCanton Season 3, Investment Infrastructure track.\n\nNarration is AI-generated text-to-speech. The background music is an original piece composed for this video, made with code. Built with Daml on Canton.\n\n#Canton #Daml #Tokenization",
+    "tags": [
+      "Canton",
+      "Canton Network",
+      "Daml",
+      "tokenized funds",
+      "tokenization",
+      "delivery versus payment",
+      "DvP",
+      "atomic settlement",
+      "RWA",
+      "real world assets",
+      "privacy",
+      "sub-transaction privacy",
+      "fund administration",
+      "transfer agent",
+      "NAV",
+      "blockchain",
+      "smart contracts",
+      "HackCanton",
+      "Global Synchronizer",
+      "Digital Asset",
+      "fintech",
+      "institutional DeFi",
+      "Privity"
+    ],
+    "categoryId": "28",
+    "defaultLanguage": "en",
+    "defaultAudioLanguage": "en"
+  },
+  "status": {
+    "privacyStatus": "unlisted",
+    "selfDeclaredMadeForKids": false,
+    "license": "youtube",
+    "embeddable": true
+  },
+  "recordingDetails": {
+    "recordingDate": "2026-09-29"
+  },
+  "files": {
+    "video": "privity-demo.mp4",
+    "thumbnail": "thumbnail.jpg",
+    "captions": "captions.en.srt"
+  },
+  "durationSeconds": 195.71
+}

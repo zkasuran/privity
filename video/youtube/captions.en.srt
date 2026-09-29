@@ -1,0 +1,273 @@
+1
+00:00:01,003 --> 00:00:04,104
+Tokenized funds still settle like paper.
+
+2
+00:00:04,379 --> 00:00:07,545
+Units move in one system, cash in another,
+
+3
+00:00:07,859 --> 00:00:10,135
+and someone reconciles the gap by hand.
+
+4
+00:00:11,363 --> 00:00:13,382
+Privity fixes that, on Canton.
+
+5
+00:00:13,657 --> 00:00:17,235
+Both legs of a fund trade
+commit in one transaction,
+
+6
+00:00:17,484 --> 00:00:19,748
+so units and cash can never separate.
+
+7
+00:00:20,023 --> 00:00:23,562
+And each counterparty sees
+only the parcel it's buying,
+
+8
+00:00:23,902 --> 00:00:25,392
+never the other side's book.
+
+9
+00:00:26,656 --> 00:00:27,515
+Here's the trade.
+
+10
+00:00:27,790 --> 00:00:30,891
+Alice sells Bob four hundred
+of her thousand units.
+
+11
+00:00:31,192 --> 00:00:34,332
+First she earmarks exactly that parcel,
+
+12
+00:00:34,620 --> 00:00:37,244
+and only the parcel is disclosed to Bob.
+
+13
+00:00:37,507 --> 00:00:39,770
+Her remaining six hundred stay private.
+
+14
+00:00:40,045 --> 00:00:43,017
+Then one transaction
+moves the units to Bob,
+
+15
+00:00:43,344 --> 00:00:44,796
+and the cash to Alice.
+
+16
+00:00:45,071 --> 00:00:46,857
+Both legs, or neither.
+
+17
+00:00:48,346 --> 00:00:49,256
+That's the story.
+
+18
+00:00:49,532 --> 00:00:54,189
+This is the evidence: a real run, captured
+from a Canton participant through
+
+19
+00:00:54,209 --> 00:00:58,264
+the JSON Ledger API, and
+clearly labelled as a replay.
+
+20
+00:00:59,409 --> 00:01:02,819
+Four claims, each checked
+on the ledger or by test.
+
+21
+00:01:03,069 --> 00:01:04,662
+Settlement is atomic.
+
+22
+00:01:04,924 --> 00:01:06,582
+Disclosure is calibrated.
+
+23
+00:01:06,844 --> 00:01:09,185
+A failed leg settles nothing.
+
+24
+00:01:09,460 --> 00:01:12,626
+And the NAV is checkable, not just signed.
+
+25
+00:01:13,763 --> 00:01:17,831
+The timeline is the run
+itself, with real update ids.
+
+26
+00:01:18,093 --> 00:01:20,730
+The seller earmarks four hundred units,
+
+27
+00:01:20,864 --> 00:01:25,354
+visible to the buyer, while the
+retained six hundred are visible to the
+
+28
+00:01:25,374 --> 00:01:26,542
+seller only.
+
+29
+00:01:26,817 --> 00:01:30,833
+Then, delivery versus payment,
+in a single transaction.
+
+30
+00:01:31,889 --> 00:01:32,606
+Here it is.
+
+31
+00:01:32,868 --> 00:01:36,369
+The seller signed the proposal,
+and the buyer exercises it,
+
+32
+00:01:36,477 --> 00:01:39,526
+so one transaction
+carries both authorities.
+
+33
+00:01:39,801 --> 00:01:40,931
+Shares transfer.
+
+34
+00:01:41,206 --> 00:01:43,688
+Cash splits, and pays the seller.
+
+35
+00:01:43,951 --> 00:01:45,299
+Eight events, one commit.
+
+36
+00:01:46,530 --> 00:01:48,690
+Now the part a public chain can't do.
+
+37
+00:01:48,940 --> 00:01:51,049
+Each row is an active contract query,
+
+38
+00:01:51,311 --> 00:01:52,995
+issued as that party.
+
+39
+00:01:53,257 --> 00:01:55,907
+The buyer sees its parcel and its cash,
+
+40
+00:01:56,169 --> 00:01:58,626
+and cannot see the
+seller's remaining units.
+
+41
+00:01:58,901 --> 00:02:03,124
+The auditor sees only its
+mandate and the NAV attestation.
+
+42
+00:02:03,399 --> 00:02:05,508
+And the privacy check passes.
+
+43
+00:02:06,837 --> 00:02:08,791
+Under the hood, it's plain Daml.
+
+44
+00:02:09,054 --> 00:02:12,400
+Settlement is one choice,
+controlled by the buyer.
+
+45
+00:02:12,662 --> 00:02:14,964
+It checks the parcel is earmarked to them,
+
+46
+00:02:15,239 --> 00:02:17,258
+and that their cash covers the price.
+
+47
+00:02:17,520 --> 00:02:20,866
+Then it runs the delivery leg
+and the payment leg together.
+
+48
+00:02:21,129 --> 00:02:23,701
+If any check fails, nothing commits.
+
+49
+00:02:24,810 --> 00:02:26,416
+NAV works the same way.
+
+50
+00:02:26,679 --> 00:02:32,177
+The ledger commits to the book with a
+sha256 hash over the sorted holdings.
+
+51
+00:02:32,439 --> 00:02:37,228
+An entitled auditor recomputes
+it, and the attestation verifies.
+
+52
+00:02:37,503 --> 00:02:39,561
+Change one unit, and it doesn't.
+
+53
+00:02:39,823 --> 00:02:41,867
+An investor can't run the check at all.
+
+54
+00:02:43,203 --> 00:02:44,848
+And you don't need to trust the page.
+
+55
+00:02:45,136 --> 00:02:48,791
+One command runs the whole
+flow on your own participant,
+
+56
+00:02:48,912 --> 00:02:51,472
+and prints a receipt: the transaction,
+
+57
+00:02:51,579 --> 00:02:55,802
+digest and NAV verification,
+the privacy verdict,
+
+58
+00:02:55,871 --> 00:02:57,245
+and the saved artifact.
+
+59
+00:02:57,494 --> 00:03:00,750
+It exits zero only if everything passes.
+
+60
+00:03:02,483 --> 00:03:03,033
+Privity.
+
+61
+00:03:03,346 --> 00:03:06,164
+Fund trades that cannot half-settle,
+
+62
+00:03:06,413 --> 00:03:08,960
+with disclosure calibrated
+to need to know.
+
+63
+00:03:09,249 --> 00:03:12,285
+Built on Canton, for
+HackCanton Season Three.

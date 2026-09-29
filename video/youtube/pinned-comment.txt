@@ -1,0 +1,1 @@
+Try it without installing anything: https://zkasuran.github.io/privity-demo/demo/ (a labelled replay of a real Canton run). To run it yourself: clone the repo and run ./reproduce.sh, it exits 0 only if settlement, digest verification and the privacy check all pass.
