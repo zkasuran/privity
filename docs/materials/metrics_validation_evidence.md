@@ -30,7 +30,7 @@ Three of the four confirmed rows are confirmed by our own tests, which proves th
 
 ## 3. Tests and results
 
-### 3a. Ledger tests, 19 of 19 passing
+### 3a. Ledger tests, 23 of 23 passing
 
 Run with `dpm test`. 11 of 11 templates created. Several tests are written to **fail if the product claim is false**, which is the only kind of test that counts as evidence rather than demonstration.
 
@@ -42,6 +42,7 @@ Run with `dpm test`. 11 of 11 templates created. Several tests are written to **
 | `testCannotSettleParcelEarmarkedForAnother` | A parcel disclosed to one buyer cannot be settled by a different buyer |
 | `testParcelSizeMustMatchProposal` | A seller cannot earmark a small parcel then claim to be selling a large one |
 | `testCannotPayWithAnothersCash` | Cannot pay with cash you do not own |
+| `test*RejectsSelfIssuedCash` (3 flows), `testDvpRejectsSelfMintedUnits` | 1.3.0: only the agreed cash issuer and the fund's manager are accepted, all fail on 1.2.0 |
 | `testSubscriptionSettlesAtomically` / `testRedemptionSettlesAtomically` | Primary issuance and redemption are atomic, not just secondary trades |
 | `testMandateLifecycle`, `testAuditorCannotSelfGrantMandate`, `testInvertedWindowRejected` | An auditor cannot manufacture visibility over an unwilling subject, revocation needs a stated reason, malformed windows are refused |
 | `testDisclosureOutsideWindowFails` | Disclosure inside a mandate window records, outside it is refused |
@@ -56,8 +57,8 @@ Run with `dpm test`. 11 of 11 templates created. Several tests are written to **
 | What | Result |
 | --- | --- |
 | LocalNet from nothing to healthy | about 2 minutes on warm images, Splice 0.8.1, full stack |
-| Packages vetted on the participant | 2 of 2 (`privity-disclosure` 1.1.0, `privity` 1.2.0), confirmed by querying the participant, not by trusting the upload |
-| Full flow over the JSON Ledger API | `./reproduce.sh` runs it one-command against the live participant: issue, subscribe, earmark, atomic DvP (8 events in one transaction), redeem, on-ledger digest verify, privacy check. Exit 0 only if the DvP commits, the digest verifies, plus the buyer cannot read the seller's retained units |
+| Packages vetted on the participant | 2 of 2 (`privity-disclosure` 1.1.0, `privity` 1.2.0), confirmed by querying the participant, not by trusting the upload. 1.3.0 is verified by Daml Script only |
+| Full flow over the JSON Ledger API | `./reproduce.sh` runs it one-command against the live participant: fund creation, cash issuance, earmark, atomic DvP (8 events in one transaction), mandate, NAV attestation, on-ledger digest verify, privacy check. Exit 0 only if the DvP commits, the digest verifies, plus the buyer cannot read the seller's retained units |
 | Production DARs carrying a `daml-script` dependency | **0**, verified with `dpm inspect-dar` after splitting tests into their own package |
 | Host preflight | all checks pass via `canton-devkit localnet doctor` |
 
@@ -135,7 +136,7 @@ Secondary falsifier: if nobody volunteers a confidentiality refusal unprompted, 
 
 | Metric | How we measure it | Now | Target by submission |
 | --- | --- | --- | --- |
-| Ledger tests passing | `dpm test` | 19 of 19 | all passing |
+| Ledger tests passing | `dpm test` | 23 of 23 (1.3.0) | all passing |
 | Templates exercised | `dpm test` coverage report | 11 of 11 created (21 Sep measurement) | 11 of 11, choice coverage above 70% |
 | Packages vetted on a participant | `localnet dar list` | 2, and the flow runs over the JSON Ledger API | met |
 | Atomic settlements executed over the real Ledger API | count committed settle exercises | 1 DvP per recorded run (8 events, 25 Sep). Subscription and redemption proven in Daml Script only | at least 3, one of each settlement type |

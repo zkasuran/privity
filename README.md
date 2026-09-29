@@ -119,7 +119,7 @@ engineering is finding the floor between them.
 
 ## Tests
 
-`dpm test` from `tests/`. 19 scripts, all passing. The two that matter are
+`dpm test` from `tests/`. 23 scripts, all passing. The two that matter are
 written to **fail if the product claim is false**, which is the only kind that counts as
 evidence rather than demonstration.
 
@@ -131,6 +131,8 @@ evidence rather than demonstration.
 | `testCannotSettleParcelEarmarkedForAnother` | A parcel disclosed to one buyer cannot be settled by another |
 | `testParcelSizeMustMatchProposal` | A seller cannot earmark small then claim to sell large |
 | `testCannotPayWithAnothersCash` | Cannot pay with cash you do not own |
+| `testDvpRejectsSelfIssuedCash`, `testDvpRejectsSelfMintedUnits` | A buyer cannot pay with cash it issued itself, and a seller cannot sell units it minted itself. Nothing moves on either leg |
+| `testSubscriptionRejectsSelfIssuedCash`, `testRedemptionRejectsSelfIssuedCash` | Issuance and redemption accept only the agreed cash issuer |
 | `testCannotEarmarkMoreThanHeld` | Oversized trade dies before a proposal exists |
 | `testSubscriptionSettlesAtomically`, `testRedemptionSettlesAtomically` | Primary issuance and redemption are atomic too |
 | `testMandateLifecycle` | Window checks, revocation needs a reason, outsiders cannot revoke |
@@ -168,7 +170,7 @@ cd tests && dpm test && cd ..
 
 # 6. Put the packages on the participant
 canton-devkit localnet dar upload disclosure/.daml/dist/privity-disclosure-1.1.0.dar --instance privity
-canton-devkit localnet dar upload app/.daml/dist/privity-1.2.0.dar --instance privity
+canton-devkit localnet dar upload app/.daml/dist/privity-1.3.0.dar --instance privity
 canton-devkit localnet dar list --instance privity
 
 # 7. Full settlement + privacy flow over the JSON Ledger API, with a receipt
@@ -199,6 +201,8 @@ Stated here rather than left for a reader to discover.
 - **No production backend.** `api/ledger.mjs` is a thin JSON Ledger API client used to drive
   and capture the flow. There is no service layer, authentication model or persistence beyond
   the ledger.
+- **1.3.0 not yet on a participant.** Verified by the full Daml Script suite only; the
+  recorded run is 1.2.0.
 - **Nothing deployed beyond LocalNet.** No DevNet, no MainNet.
 - **Digest canonicalisation relies on Daml's `show` for `Decimal`.** It is computed only on
   ledger and pinned by `testDigestGoldenValue`, so it cannot drift silently. It is not yet a
@@ -209,7 +213,7 @@ Stated here rather than left for a reader to discover.
 
 ## Package versions and upgrades
 
-`privity-disclosure` is at 1.1.0 and `privity` at 1.2.0 and the version numbers are not
+`privity-disclosure` is at 1.1.0 and `privity` at 1.3.0 and the version numbers are not
 cosmetic. Canton treats package name plus version as an identity and **enforces upgrade
 compatibility**, so a changed model needs a bump and the bump has to be a valid upgrade.
 
@@ -217,7 +221,14 @@ That caught a real mistake. Moving the mandate validity check from a caller-supp
 to ledger time meant deleting the `at` field from choice `CheckActive` and the participant
 refused the upload: `NOT_VALID_UPGRADE_PACKAGE: The upgraded input type of choice CheckActive
 on template DisclosureMandate is missing some of its original fields`. The field is therefore
-retained and explicitly ignored. A vestigial argument is the price of a register that can be
+retained and explicitly ignored.
+
+1.3.0 closes a gap found in review: settlement did not check who issued the cash or the
+units, so a buyer could pay with self-issued "USDC" and a seller could sell units it minted
+itself. All three settlement choices now assert the agreed cash issuer, the fund's manager
+and the instrument, with four tests that fail on 1.2.0 and pass on 1.3.0. The change only adds
+assertions to choice bodies. **The recorded LocalNet run and the public replay are from 1.2.0;
+1.3.0 has not yet been vetted on a participant.** A vestigial argument is the price of a register that can be
 migrated rather than orphaned, which matters more to an institution than a tidy signature.
 
 ## Licence
@@ -234,5 +245,5 @@ concludes, so it can be adopted as an ecosystem primitive. The reason for waitin
 
 AI assistance (Claude, Anthropic) was used in developing this project. The design decisions,
 the review and the verification are the author's. Verified before publishing: `dpm build --all`
-succeeds for all three packages, `dpm test` passes all 19 tests and both production DARs
-upload and vet on a live Canton LocalNet participant.
+succeeds for all three packages, `dpm test` passes all 23 tests (1.3.0, 29 Sep 2026), and
+the 1.2.0 production DARs upload and vet on a live Canton LocalNet participant (25 Sep 2026).
