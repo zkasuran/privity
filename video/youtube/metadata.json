@@ -41,7 +41,7 @@
     "recordingDate": "2026-09-29"
   },
   "files": {
-    "video": "privity-demo.mp4",
+    "video": "../out/privity-demo.mp4",
     "thumbnail": "thumbnail.jpg",
     "captions": "captions.en.srt"
   },

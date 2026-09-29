@@ -4,7 +4,8 @@ A 3:16 narrated walkthrough in the Screen Studio style: a floating window over a
 smooth zooms that follow the action, a smoothed cursor with click ripples, spotlight highlights,
 typed terminal output, an original score that ducks under the narration, and UI sound effects.
 
-The video is built entirely from code so it can be regenerated whenever the site changes.
+The rendered file is [`out/privity-demo.mp4`](out/privity-demo.mp4) (1080p30, 40 MB). It is built entirely from code, so it
+can be regenerated whenever the site changes.
 
 ## What is on screen, and where it comes from
 

@@ -169,7 +169,7 @@ def main():
         status=dict(privacyStatus="unlisted", selfDeclaredMadeForKids=False, license="youtube",
                     embeddable=True),
         recordingDetails=dict(recordingDate="2026-09-29"),
-        files=dict(video="privity-demo.mp4", thumbnail="thumbnail.jpg", captions="captions.en.srt"),
+        files=dict(video="../out/privity-demo.mp4", thumbnail="thumbnail.jpg", captions="captions.en.srt"),
         durationSeconds=round(total, 2),
     )
     (OUT / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
