@@ -681,3 +681,137 @@ template DiscloseHelper
     choice RunDisclose : ContractId DisclosureRecord
       controller manager
       do discloseUnder mandate digest
+
+-- | Counterfeit cash. A 'CashHolding' is signed only by its issuer, so anyone can issue
+--   themselves "USDC". Settlement must accept only the cash issuer named in the trade, and a
+--   rejected payment must leave the parcel undelivered.
+testDvpRejectsSelfIssuedCash : Script ()
+testDvpRejectsSelfIssuedCash = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 1000.0
+  -- Bob issues his own "USDC" to himself. Same instrument name, wrong issuer.
+  fakeCash <- giveCash f.bob f.bob f.instrument 150_000.0
+
+  (parcel, _) <- submit f.alice do
+    exerciseCmd aliceShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = f.bob
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  submitMustFail f.bob do
+    exerciseCmd proposal SettleDvP with cashCid = fakeCash
+
+  -- Nothing moved: the parcel is still Alice's and still undelivered.
+  Some stillParcel <- queryContractId f.alice parcel
+  stillParcel.investor === f.alice
+
+-- | Counterfeit units. A 'ShareHolding' is signed by whoever is named as its manager, so a
+--   seller can mint "units" under its own name. Settlement must accept only units issued by
+--   the fund's manager, and the buyer's cash must be untouched when it refuses.
+testDvpRejectsSelfMintedUnits : Script ()
+testDvpRejectsSelfMintedUnits = do
+  f <- setup
+  bobCash <- giveCash f.cashIssuer f.bob f.instrument 150_000.0
+
+  -- Alice mints 1,000 "PRIV-I" units with herself as manager.
+  fakeShares <- submit f.alice do
+    createCmd ShareHolding with
+      manager = f.alice
+      administrator = f.administrator
+      investor = f.alice
+      symbol = f.symbol
+      units = 1000.0
+      prospectiveBuyer = None
+
+  (parcel, _) <- submit f.alice do
+    exerciseCmd fakeShares EarmarkForSale with buyer = f.bob, saleUnits = 400.0
+
+  proposal <- submit f.alice do
+    createCmd DvpProposal with
+      seller = f.alice; buyer = f.bob
+      manager = f.manager; administrator = f.administrator
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol; instrument = f.instrument
+      units = 400.0; pricePerUnit = 102.50
+      shareCid = parcel
+      auditor = None
+
+  submitMustFail f.bob do
+    exerciseCmd proposal SettleDvP with cashCid = bobCash
+
+  -- Bob's cash is untouched.
+  Some stillCash <- queryContractId f.bob bobCash
+  stillCash.amount === 150_000.0
+
+-- | Primary issuance must not create units against self-issued cash.
+testSubscriptionRejectsSelfIssuedCash : Script ()
+testSubscriptionRejectsSelfIssuedCash = do
+  f <- setup
+  fakeCash <- giveCash f.alice f.alice f.instrument 50_000.0
+
+  request <- submit f.alice do
+    createCmd SubscriptionRequest with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      symbol = f.symbol
+      instrument = f.instrument
+      cashAmount = 25_000.0
+      agreedNavPerUnit = 100.0
+
+  settlement <- submit f.manager do
+    createCmd SubscriptionSettlement with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol
+      instrument = f.instrument
+      request
+      auditor = None
+
+  submitMustFail f.alice do
+    exerciseCmd settlement SettleSubscription with cashCid = fakeCash
+
+-- | A redemption must pay out in the agreed issuer's cash, not cash the fund issued itself.
+testRedemptionRejectsSelfIssuedCash : Script ()
+testRedemptionRejectsSelfIssuedCash = do
+  f <- setup
+  aliceShares <- giveShares f f.alice 500.0
+  fakeFundCash <- giveCash f.manager f.manager f.instrument 100_000.0
+
+  request <- submit f.alice do
+    createCmd RedemptionRequest with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      symbol = f.symbol
+      instrument = f.instrument
+      units = 200.0
+      agreedNavPerUnit = 105.0
+
+  settlement <- submit f.alice do
+    createCmd RedemptionSettlement with
+      manager = f.manager
+      administrator = f.administrator
+      investor = f.alice
+      cashIssuer = f.cashIssuer
+      symbol = f.symbol
+      instrument = f.instrument
+      request
+      shareCid = aliceShares
+      auditor = None
+
+  submitMustFail f.manager do
+    exerciseCmd settlement SettleRedemption with cashCid = fakeFundCash
+
+  -- The units were not cancelled.
+  Some stillShares <- queryContractId f.alice aliceShares
+  stillShares.units === 500.0

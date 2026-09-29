@@ -183,9 +183,9 @@
       <a class="btn ghost" href="Privity-pitch.pdf">Pitch deck</a>
     </div>
     <div class="trust">
-      <div><b class="ok">19</b>Daml tests passing</div>
+      <div><b class="ok">23</b>Daml tests passing</div>
       <div><b class="acc">1 tx</b>both legs, 8 events</div>
-      <div><b>4</b>claims verified on a live ledger</div>
+      <div><b>3 + 1</b>claims verified on a live ledger + by test</div>
       <div><b>~2 min</b>reproduces from a clean machine</div>
     </div>
   </header>
@@ -302,7 +302,7 @@
       <tr><td class="b">NAV is tied to a specific book</td><td class="mono">auditor recomputes digest and NAV, both true</td><td class="yes">live participant</td></tr>
     </table>
     <div class="grid g3">
-      <div class="card rise"><div class="statbig ok">19</div><div class="cap">Daml tests passing</div>
+      <div class="card rise"><div class="statbig ok">23</div><div class="cap">Daml tests passing</div>
         <p>Across three packages. Two are falsification tests, so a broken claim breaks the build.</p></div>
       <div class="card rise"><div class="statbig acc">~2 min</div><div class="cap">LocalNet from nothing to healthy</div>
         <p>The whole run reproduces on a clean machine with Docker. No Canton node, no cloud, no
@@ -426,7 +426,7 @@
   </div>
   <p class="disc">AI assistance (Claude, Anthropic) was used in developing this project. The design
     decisions, review and verification are the author's. Verified before publishing: three packages
-    build, 19 of 19 Daml tests pass, both production DARs vet on a live Canton participant, and this
+    build, 23 of 23 Daml tests pass, the 1.2.0 production DARs vet on a live Canton participant, and this
     site returns 200 to an anonymous request.</p>
 </div></footer>
 

@@ -95,12 +95,20 @@ template DvpProposal
         parcel <- fetch shareCid
         assertMsg "parcel is not the seller's" (parcel.investor == seller)
         assertMsg "parcel is for a different fund" (parcel.symbol == symbol)
+        -- A ShareHolding is signed by whoever is named as its manager, so without these a
+        -- seller could mint its own "units" under its own name and sell them.
+        assertMsg "parcel was not issued by the fund's manager" (parcel.manager == manager)
+        assertMsg "parcel is not on the fund administrator's register"
+          (parcel.administrator == administrator)
         assertMsg "parcel size does not match the proposal" (parcel.units == units)
         assertMsg "parcel is not earmarked to this buyer"
           (parcel.prospectiveBuyer == Some buyer)
 
         cash <- fetch cashCid
         assertMsg "cash holding is not the buyer's" (cash.owner == buyer)
+        -- A CashHolding is signed only by its issuer, so without this a buyer could issue
+        -- itself "USDC" and pay with it.
+        assertMsg "cash was not issued by the agreed cash issuer" (cash.issuer == cashIssuer)
         assertMsg "cash holding is the wrong instrument" (cash.instrument == instrument)
         assertMsg "buyer's cash does not cover the consideration"
           (cash.amount >= consideration)
@@ -155,6 +163,7 @@ template SubscriptionSettlement
 
         cash <- fetch cashCid
         assertMsg "cash holding is not the investor's" (cash.owner == investor)
+        assertMsg "cash was not issued by the agreed cash issuer" (cash.issuer == cashIssuer)
         assertMsg "cash holding is the wrong instrument" (cash.instrument == instrument)
         assertMsg "investor's cash does not cover the subscription"
           (cash.amount >= req.cashAmount)
@@ -201,10 +210,14 @@ template RedemptionSettlement
 
         share <- fetch shareCid
         assertMsg "share holding is not the investor's" (share.investor == investor)
+        assertMsg "share holding was not issued by the fund's manager" (share.manager == manager)
+        assertMsg "share holding is for a different fund" (share.symbol == symbol)
         assertMsg "investor does not hold enough units" (share.units >= req.units)
 
         cash <- fetch cashCid
         assertMsg "paying cash holding is not the fund's" (cash.owner == manager)
+        assertMsg "cash was not issued by the agreed cash issuer" (cash.issuer == cashIssuer)
+        assertMsg "cash holding is the wrong instrument" (cash.instrument == instrument)
         let payout = req.units * req.agreedNavPerUnit
         assertMsg "fund's cash does not cover the redemption" (cash.amount >= payout)
 
