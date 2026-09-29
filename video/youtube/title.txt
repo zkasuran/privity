@@ -1,0 +1,6 @@
+Privity: fund trades that cannot half-settle | Atomic DvP + need-to-know privacy on Canton
+
+Alternatives:
+- Atomic delivery-versus-payment for tokenized funds on Canton (Daml demo)
+- Settling a tokenized fund trade in ONE Canton transaction, and proving who can see what
+- Privity | HackCanton S3 demo: atomic settlement, calibrated disclosure, verifiable NAV

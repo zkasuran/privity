@@ -1,0 +1,34 @@
+Privity is settlement infrastructure for tokenized funds on Canton. Both legs of a fund trade, units and cash, commit in one atomic Daml transaction, so delivery and payment can never separate. Each counterparty sees only the parcel it is buying, never the other side's book, and an independent administrator attests NAV with a sha256 commitment that an entitled auditor can verify on ledger.
+
+Everything on screen comes from a real run on a Canton LocalNet participant (Ledger API 3.5.17), captured through the JSON Ledger API and shown as a labelled replay. The terminal receipt is the output of reproduce.sh for that same recorded run.
+
+▶ Verified run (replay): https://zkasuran.github.io/privity-demo/demo/
+▶ Project site: https://zkasuran.github.io/privity-demo/
+▶ Code: https://github.com/zkasuran/privity
+
+Chapters
+0:00 Intro
+0:10 The idea
+0:26 Watch a trade settle
+0:47 The verified run
+0:59 Four claims
+1:13 The settlement, step by step
+1:31 One atomic transaction
+1:46 Who sees what
+2:06 The Daml behind it
+2:24 Verifiable NAV
+2:42 Reproduce it yourself
+3:01 Wrap-up
+
+What you'll see
+• Atomic delivery versus payment: shares and cash move in one transaction, 8 events, one commit
+• Calibrated disclosure: the seller earmarks exactly the parcel being sold; the buyer can verify it and never sees the retained units
+• Need-to-know, read back from the ledger: active contract queries issued as each of the four parties
+• Verifiable NAV: an on-ledger sha256 commitment over the book, recomputed by an entitled auditor
+• One-command reproduction with a pass/fail receipt
+
+Built for HackCanton Season 3, Investment Infrastructure track.
+
+Narration is AI-generated text-to-speech. The background music is an original piece composed for this video, made with code. Built with Daml on Canton.
+
+#Canton #Daml #Tokenization

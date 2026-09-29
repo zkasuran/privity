@@ -64,9 +64,9 @@ Run with `dpm test`. 11 of 11 templates created. Several tests are written to **
 ### 3c. Market signal, desk research, verified but not validation
 
 - **NAV calculation error notifications to Luxembourg's CSSF rose from 238 in 2019 to 462 in 2022**, while investment compliance breach notifications *fell* over the same window (1,497 to 1,382). The operational failure mode is the one growing. *Reported by Deloitte Luxembourg from CSSF activity reports 2017 to 2022.*
-- CSSF Circular 02/77 requires that investors who suffered a loss from a NAV error are protected. The same source records an "increase in the number of normal procedures (including compensation to investors)". So the error has a cash consequence, not only a reputational one.
+- CSSF Circular 24/856 (which replaced 02/77 from 1 January 2025, [CSSF](https://www.cssf.lu/wp-content/uploads/CSSF24_856eng.pdf)) governs investor protection after a NAV error. Deloitte Luxembourg's summary of CSSF activity records an "increase in the number of normal procedures (including compensation to investors)". So the error has a cash consequence, not only a reputational one.
 - Under CSDR Article 7, "cash penalties shall be calculated on a daily basis for each business day that a transaction fails to be settled". Supporting context for why regulated markets price the gap between two legs. **Not a claim that our ICP pays CSDR penalties**, since CSDR covers CSD-settled securities rather than private fund flows.
-- DTCC launched a tokenization service on Canton on 13 September 2026, which is the timing signal for why this decision is live now.
+- DTCC processed its first US trades using DTC-tokenized assets on 15 July 2026 and says its Tokenization Service launches in October 2026, with Canton among the supported networks ([DTCC via BusinessWire](https://www.morningstar.com/news/business-wire/20260715664564/dtcc-turns-tokenization-into-reality-us-trades-successfully-processed-using-dtc-tokenized-assets)). The first published use is Treasuries as collateral, not fund units. That is the timing signal for why this decision is live now.
 
 Full sourcing, including what we refused to cite and why, is in `DATA-SOURCES.md`. Two figures were deliberately left out: a settlement fail percentage we could not attribute to a column with confidence, plus generic accounts-payable cost-per-document statistics that describe an unrelated workflow.
 
@@ -92,7 +92,7 @@ Interviews are not the only form of evidence about what practitioners experience
 | --- | --- |
 | The framework being replaced has core processing, recordkeeping and safeguarding requirements dating to the late 1970s and early 1980s, built for "a market where securities were represented by physical certificates and transactions and related records were processed manually" | The regulator, not us, describes the current operating model as manual. This is the problem statement in the regulator's own words |
 | Proposed Rules 17ad-2 and 17ad-10 move transfer and register posting to a **one-business-day** framework tied to the settlement cycle, replacing a 90%-within-three-business-days standard | The timing gap we remove is a gap a regulator is actively moving to close. Our hypothesis about its importance no longer rests on our judgment |
-| "for uncertificated securities, prompt posting and turnaround are effectively the same event" | The strongest sentence we have found anywhere. The regulator's position is that transfer and register update should be one event. Privity makes them one transaction |
+| For uncertificated securities, prompt posting and turnaround are effectively the same event (Morgan Lewis summary of the SEC proposal, [source](https://www.morganlewis.com/pubs/2026/09/sec-proposes-comprehensive-modernization-of-transfer-agent-rules-signals-further-progress-on-framework-for-tokenized-securities)) | The strongest framing we have found. The direction is that transfer and register update should be one event. Privity makes them one transaction |
 | The definition of "item" is extended to cover "an electronic system controlled, operated, or enabled by the transfer agent", expressly to capture instructions sent through "blockchains and other distributed ledger-based platforms" | Our infrastructure choice is contemplated rather than tolerated |
 | Proposed Rule 17ad-31 requires maintaining a current list of authorized issuer employees, acting only on instructions from that list, then memorialising written determinations with supporting facts and approval | Independent regulatory validation of the shape of our `DisclosureMandate`: authority recorded in advance, exercised only by an entitled party, with retained evidence |
 | Rescission of Rule 17ad-4 removes exemptions for transfer agents processing limited partnership interests, DRIPs and redeemable open-end fund securities, a population the SEC estimates at **approximately 200 registered transfer agents** | A regulator-sourced count of firms in our product scope about to face accelerated standards. Better grounded than our own estimate |
@@ -107,7 +107,7 @@ Interviews are not the only form of evidence about what practitioners experience
 
 - **Target:** 5 to 8 interviews held, **at least 3 from the exact ICP** (fund accounting, transfer agency or fund operations lead at a third-party administrator or a self-administering manager). Adjacent conversations with auditors, lawyers and vendors are logged separately and do not count toward the 3.
 - **Instrument:** `VALIDATION-GUIDE.md`. Six sections, product not described until section 5 so answers are not bent toward it, every question asks what happened last month rather than what they would hypothetically use.
-- **Outreach:** `submit/OUTREACH-privity.html`, with a named target list of 10 mid-tier administrators. 8 requests sent to yield 5 held.
+- **Outreach:** `submit/OUTREACH-privity.html`, with a named target list of 10 mid-tier administrators. Plan: 8 requests to yield 5 held. **None sent as of 29 Sep 2026.**
 - **A new and better channel.** The SEC comment period on the transfer agent proposal is open, comments due 60 days after Federal Register publication. The SEC has asked specifically for "concrete data on item volumes and time-of-day receipt patterns, exception and rejection rates, investment company and other specialized workflows, systems-upgrade costs". Comment letters on that docket will be named practitioners describing this exact workflow with numbers attached, in public. Reading them as they are filed is now part of the validation plan. It is a route to practitioner voice that does not depend on anyone answering our email.
 
 ### Pre-committed falsification test
@@ -135,15 +135,15 @@ Secondary falsifier: if nobody volunteers a confidentiality refusal unprompted, 
 
 | Metric | How we measure it | Now | Target by submission |
 | --- | --- | --- | --- |
-| Ledger tests passing | `dpm test` | 15 of 15 | 15 or more, all passing |
-| Templates exercised | `dpm test` coverage report | 11 of 11 created | 11 of 11, choice coverage above 70% |
-| Packages vetted on a participant | `localnet dar list` | 2 | 2, plus the same flow over the JSON Ledger API |
-| Atomic settlements executed over the real Ledger API | count committed settle exercises | 0, tests run on the IDE ledger | at least 3, one of each settlement type |
-| Users who tried the demo | unique visitors completing the core flow | 0, no UI exists yet | a working hosted demo, plus 5 or more walkthroughs |
+| Ledger tests passing | `dpm test` | 19 of 19 | all passing |
+| Templates exercised | `dpm test` coverage report | 11 of 11 created (21 Sep measurement) | 11 of 11, choice coverage above 70% |
+| Packages vetted on a participant | `localnet dar list` | 2, and the flow runs over the JSON Ledger API | met |
+| Atomic settlements executed over the real Ledger API | count committed settle exercises | 1 DvP per recorded run (8 events, 25 Sep). Subscription and redemption proven in Daml Script only | at least 3, one of each settlement type |
+| Users who tried the demo | unique visitors completing the core flow | public labelled replay live; 0 measured walkthroughs (no analytics) | 5 or more walkthroughs |
 | Transactions on DevNet or MainNet | ledger query | 0 | LocalNet is the committed target, DevNet a stretch |
-| Active parties | allocated parties in a demo run | 6 in tests (manager, administrator, cash issuer, auditor, two investors) | same 6 over the real Ledger API |
+| Active parties | allocated parties in a demo run | 6 allocated over the JSON Ledger API in the recorded run | met |
 
-Two rows deliberately read zero. There is no UI, so nobody has tried a demo. Tests run against the IDE ledger, which proves the model but not the same behaviour over the real Ledger API with allocated parties. Claiming otherwise would be the easiest lie on this page to tell and the easiest for a judge to catch.
+Rows that read zero or partial are deliberate. The DvP, NAV attestation and privacy check have run over the JSON Ledger API with 6 allocated parties on a LocalNet participant; subscription and redemption have not yet run there, and nothing is on DevNet. The public demo is a labelled replay of that run, and we have no analytics on who has walked through it. Claiming otherwise would be the easiest lie on this page to tell and the easiest for a judge to catch.
 
 ---
 
@@ -168,7 +168,7 @@ The disclosure package row matters as much as the fund rows. If the primitive is
 - **Whether the pain owner can actually authorise a change.** The economic buyer is reasoned to be operations leadership, not tested. Answer: ask who signed off the last process change, in every interview.
 - **What confidentiality floor is genuinely acceptable.** We know a buyer must see the parcel and must not see the book. We do not know whether an administrator will accept the fund manager being a signatory on every share holding, which our current model requires. Answer: walk the actual stakeholder list past three practitioners and record objections.
 - **Whether the holdings digest design is meaningful to an auditor.** The commitment itself is real, not a placeholder: `NavAttestation` carries a sha256 over a canonical serialisation of the book, an entitled party recomputes and checks it, a tampered book fails, order does not matter, a non-entitled party is refused. That is tested and green. What is still unproven is whether a fund auditor treats an on-ledger recompute as their reconciliation control in practice. Answer: show it to a fund auditor and record whether it maps to how they evidence NAV support today.
-- **Whether behaviour matches the model over the real Ledger API.** Answer: run all three settlement types over the JSON Ledger API with allocated parties before submission.
+- **Whether behaviour matches the model over the real Ledger API.** Partly answered: DvP matches over the JSON Ledger API with allocated parties (25 Sep run). Subscription and redemption are still proven only in Daml Script.
 
 ---
 
